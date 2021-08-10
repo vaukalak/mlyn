@@ -1,5 +1,5 @@
-import { runInContext, destroyContext } from "./context";
-import { createProxy } from "./proxy";
+import { runInContext, destroyContext } from "../src/context";
+import { createProxy } from "../src/proxy";
 
 describe("context", () => {
   it("should run in context", () => {

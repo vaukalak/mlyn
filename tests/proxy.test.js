@@ -1,5 +1,5 @@
-import { createProxy, batch } from "./proxy";
-import { runInContext } from "./context";
+import { createProxy, batch } from "../src/proxy";
+import { runInContext } from "../src/context";
 
 describe("proxy", () => {
   it("accessing proxy value", () => {

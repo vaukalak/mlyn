@@ -1,7 +1,8 @@
 {
-  "author": "vaukalak",
-  "descrition": "javascript immutable state utility",
+  "name": "mlyn",
   "version": "0.0.1",
+  "descrition": "javascript immutable state utility",
+  "author": "vaukalak",
   "repository": "https://github.com/vaukalak/mlyn",
   "scripts": {
     "clean": "rm -rf dist",
