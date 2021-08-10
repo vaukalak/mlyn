@@ -27,29 +27,3 @@ export const runInContext = (callback) => {
   callback();
   return contexts.pop();
 };
-
-// export const runMemoized = (callback) => {
-//     const result = createProxy(undefined);
-//     runInContext(() => result(callback(result())));
-//     return result;
-// };
-
-// const stateProxy = {};
-
-// export const useSelector = (selector) => {
-//     const [selectedState, setSelectedState] = useState();
-//     const callback = () => {
-//         setSelectedState(selector(stateProxy));
-//     }
-//     contexts.push({
-//         dependencies: new Set(),
-//         callback,
-//     });
-//     const context = contexts.pop();
-//     useEffect(() => {
-//         return () => {
-//             destroyContext(context);
-//         }
-//     }, []);
-//     return selectedState;
-// };
