@@ -1,0 +1,18 @@
+{
+  "author": "vaukalak",
+  "descrition": "javascript immutable state utility",
+  "version": "0.0.1",
+  "repository": "https://github.com/vaukalak/mlyn",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npx babel src --out-dir lib",
+    "prepublish": "yarn clean && yarn build"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.14.8",
+    "@babel/core": "^7.15.0",
+    "@babel/node": "^7.14.9",
+    "@babel/preset-env": "^7.15.0",
+    "jest": "^27.0.6"
+  }
+}
