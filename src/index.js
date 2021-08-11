@@ -1,2 +1,2 @@
 export { createProxy } from "./proxy";
-export { runInContext } from "./context";
+export { runInContext, destroyContext } from "./context";
