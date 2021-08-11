@@ -6,6 +6,7 @@
   "author": "vaukalak",
   "repository": "https://github.com/vaukalak/mlyn",
   "scripts": {
+    "test": "npx jest",
     "clean": "rm -rf dist",
     "build": "npx babel src --out-dir lib",
     "prepublish": "yarn clean && yarn build"

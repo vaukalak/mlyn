@@ -53,12 +53,25 @@ const handlers = (onChange) => {
   };
   const proxifyKeyCached = (target, key) => {
     if (!cache.has(key)) {
-      const targetValue = target.__curried;
-      const result = createProxy(targetValue[key], (newValue) => {
-        updateValue(target, {
-          ...target.__curried,
-          [key]: newValue,
-        });
+      const result = createProxy(target.__curried[key], (newValue) => {
+        if (Array.isArray(target.__curried)) {
+          const index = parseInt(key, 10);
+          if (isNaN(index)) {
+            throw new Error(`trying to set non numeric key "${key}" of type "${typeof key}" to array object`);
+          }
+          // is map the most performant way?
+          updateValue(target, target.__curried.map((e, i) => {
+            if (i === index) {
+              return newValue;
+            }
+            return e;
+          }));
+        } else {
+          updateValue(target, {
+            ...target.__curried,
+            [key]: newValue,
+          });
+        }
       });
       cache.set(key, result);
     }

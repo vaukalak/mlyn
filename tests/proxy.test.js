@@ -89,6 +89,59 @@ describe("proxy", () => {
   });
 });
 
+describe("array updates", () => {
+  it ("should properly update indexes", () => {
+    const proxy = createProxy({ tags: ["a", "b", "c"] });
+    proxy.tags[0] = "d";
+    expect(proxy.tags()).toEqual(["d", "b", "c"]);
+  });
+
+  it ("should properly update indexes on nested values", () => {
+    const proxy = createProxy({ tags: [{ name: "a" }, { name: "b" }, { name: "c" }] });
+    proxy.tags[0].name = "d";
+    expect(proxy.tags()).toEqual([{ name: "d" }, { name: "b" }, { name: "c" }]);
+    proxy.tags[0]({ name: "e" })
+    expect(proxy.tags()).toEqual([{ name: "e" }, { name: "b" }, { name: "c" }]);
+  });
+
+  it ("should properly add / delete values", () => {
+    const proxy = createProxy({ tags: ["a", "b", "c"] });
+    proxy.tags = [...proxy.tags(), "d"];
+    expect(proxy.tags()).toEqual(["a", "b", "c", "d"]);
+    const [a, ...newTags] = proxy.tags();
+    proxy.tags = [...newTags];
+    expect(proxy.tags()).toEqual(["b", "c", "d"]);
+  });
+
+  it ("manage deleted key:", () => {
+    const proxy = createProxy({ tags: ["a", "b", "c"] });
+    let log = "";
+    runInContext(() => {
+      log = proxy.tags[0]();
+    });
+    expect(log).toBe("a");
+    const [a, ...newTags] = proxy.tags();
+    proxy.tags = newTags;
+    expect(log).toBe("b");
+    proxy.tags = [];
+    expect(log).toBe(undefined);
+  });
+
+  it("swap items", () => {
+    const proxy = createProxy([{ firstName: "Alberth" }, { firstName: "Nicola" }]);
+    let log;
+    runInContext(() => {
+      log = proxy[0].firstName();
+    });
+    expect(log).toEqual("Alberth");
+    proxy([
+      proxy[1](),
+      proxy[0](),
+    ]);
+    expect(log).toEqual("Nicola");
+  });
+});
+
 describe("batch updated", () => {
   test("do not disptach changes untill batch passed", () => {
     const logs = [];
