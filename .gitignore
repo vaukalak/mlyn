@@ -5,3 +5,5 @@ yarn-error.log
 .yarn/cache
 
 node_modules/
+
+lib/
