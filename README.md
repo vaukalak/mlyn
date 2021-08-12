@@ -54,7 +54,7 @@ const upperCase = (value) => {
   value(value().toUpperCase());
 }
 const { firstName } = subject.user;
-lowerCase(firstName);
+upperCase(firstName);
 console.log(subject()); // { user: { firstName: "ADAM", lastName: "Smith" } }
 ```
 
