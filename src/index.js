@@ -1,2 +1,2 @@
-export { createProxy, batch } from "./proxy";
-export { runInContext, destroyContext } from "./context";
+export { createSubject, batch } from "./subject";
+export { runInReactiveScope, destroyScope } from "./scope";

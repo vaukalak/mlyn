@@ -1,4 +1,4 @@
-import { getActiveContext, observeInContext } from "./context";
+import { getActiveScope, observeInScope } from "./scope";
 
 const batches = [];
 
@@ -53,7 +53,7 @@ const handlers = (onChange) => {
   };
   const proxifyKeyCached = (target, key) => {
     if (!cache.has(key)) {
-      const result = createProxy(target.__curried[key], (newValue) => {
+      const result = createSubject(target.__curried[key], (newValue) => {
         if (Array.isArray(target.__curried)) {
           const index = parseInt(key, 10);
           if (isNaN(index)) {
@@ -92,11 +92,11 @@ const handlers = (onChange) => {
           }
         });
       } else {
-        const context = getActiveContext();
-        if (context) {
-          observeInContext(context, subscribe);
+        const scope = getActiveScope();
+        if (scope) {
+          observeInScope(scope, subscribe);
         }
-        // we allow to run outside of context
+        // we allow to run outside of scope
         // in this case just returns a value;
       }
       return target.__curried;
@@ -114,7 +114,7 @@ const handlers = (onChange) => {
   };
 };
 
-export const createProxy = (target, onChange) => {
+export const createSubject = (target, onChange) => {
   // this function is never invocked, but js
   // doesn't like invoking a function on a proxy
   // which target is not a function :P
