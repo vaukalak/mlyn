@@ -1,3 +1,7 @@
 # mlyn
 
-javascript immutable state utility
+Reactive immutable state.
+
+Inspired by [solidjs](https://github.com/solidjs/solid)
+
+
