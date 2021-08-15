@@ -1,29 +1,39 @@
-const scopes = [];
+let currentScope = undefined;
 const scopeByListener = new Map();
 
 export const getActiveScope = () => {
-  return scopes.length > 0 ? scopes[scopes.length - 1] : undefined;
-};
-
-export const getListenerScope = () => {
-  return scopes.length > 0 ? scopes[scopes.length - 1] : undefined;
+  return currentScope;
 };
 
 export const observeInScope = (scope, subscribe) => {
   scope.dependencies.add(subscribe(scope.callback));
 };
 
-export const destroyScope = (scope) => {
-  for (const dependency of scope.dependencies.values()) {
+export const destroyScope = ({ dependencies, destroy }) => {
+  for (const dependency of dependencies.values()) {
     dependency();
+  }
+  if (destroy) {
+    destroy();
   }
 };
 
+export const muteScope = (callback) => {
+  const prevScope = currentScope;
+  currentScope = undefined;
+  callback();
+  currentScope = prevScope;
+};
+
 export const runInReactiveScope = (callback) => {
-  scopes.push({
+  const prevScope = currentScope;
+  const newScope = {
     dependencies: new Set(),
     callback,
-  });
-  callback();
-  return scopes.pop();
+  };
+  currentScope = newScope;
+  const destroy = callback();
+  newScope.destroy = destroy;
+  currentScope = prevScope;
+  return newScope;
 };
