@@ -22,7 +22,7 @@ export const batch = (cb) => {
 };
 
 const handlers = (options) => {
-  const { onChange } = options;
+  const { onChange, monitor, $isRoot = true } = options;
   const cache = new Map();
   const listeners = new Set();
   const subscribe = (listener) => {
@@ -37,6 +37,9 @@ const handlers = (options) => {
     }
   };
   const updateValue = (target, newValue) => {
+    if (monitor && !monitor.isTransactionRunning()) {
+      monitor.startTransaction();
+    }
     target.__curried = newValue;
     if (onChange) {
       onChange(target.__curried);
@@ -73,8 +76,14 @@ const handlers = (options) => {
             [key]: newValue,
           });
         }
+        if (monitor) {
+          monitor.entryUpdated({ [key]: newValue });
+          if ($isRoot) {
+            monitor.endTransaction(target.__curried);
+          }
+        }
       };
-      const result = createSubject(target.__curried[key], { onChange });
+      const result = createSubject(target.__curried[key], { onChange, monitor, $isRoot: false });
       cache.set(key, result);
     }
     return cache.get(key);
@@ -82,9 +91,9 @@ const handlers = (options) => {
   return {
     apply: (target, thisArg, args) => {
       if (args.length > 0) {
+        const newValue = args[0];
         batch(() => {
           // replace root value;
-          const newValue = args[0];
           updateValue(target, newValue);
           // reconcile
           for (const [childKey, childValue] of cache.entries()) {
@@ -93,6 +102,9 @@ const handlers = (options) => {
             }
           }
         });
+        if (monitor && $isRoot) {
+          monitor.endTransaction(target.__curried);
+        }
       } else {
         const scope = getActiveScope();
         if (scope) {
@@ -116,7 +128,10 @@ const handlers = (options) => {
   };
 };
 
-export const createSubject = (target, options = {}) => {
+export const createSubject = (target, options = { }) => {
+  if (options.monitor && options.$isRoot !== false) {
+    options.monitor.init(target);
+  }
   // this function is never invocked, but js
   // doesn't like invoking a function on a proxy
   // which target is not a function :P
