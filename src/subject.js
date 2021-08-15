@@ -21,7 +21,8 @@ export const batch = (cb) => {
   }
 };
 
-const handlers = (onChange) => {
+const handlers = (options) => {
+  const { onChange } = options;
   const cache = new Map();
   const listeners = new Set();
   const subscribe = (listener) => {
@@ -53,7 +54,7 @@ const handlers = (onChange) => {
   };
   const proxifyKeyCached = (target, key) => {
     if (!cache.has(key)) {
-      const result = createSubject(target.__curried[key], (newValue) => {
+      const onChange = (newValue) => {
         if (Array.isArray(target.__curried)) {
           const index = parseInt(key, 10);
           if (isNaN(index)) {
@@ -72,7 +73,8 @@ const handlers = (onChange) => {
             [key]: newValue,
           });
         }
-      });
+      };
+      const result = createSubject(target.__curried[key], { onChange });
       cache.set(key, result);
     }
     return cache.get(key);
@@ -114,11 +116,11 @@ const handlers = (onChange) => {
   };
 };
 
-export const createSubject = (target, onChange) => {
+export const createSubject = (target, options = {}) => {
   // this function is never invocked, but js
   // doesn't like invoking a function on a proxy
   // which target is not a function :P
   const f = () => f.__curried;
   f.__curried = target;
-  return new Proxy(f, handlers(onChange));
+  return new Proxy(f, handlers(options));
 };
