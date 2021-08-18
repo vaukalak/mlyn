@@ -87,6 +87,14 @@ describe("subject", () => {
     expect(bar(2)).toEqual(2);
     expect(subject()).toEqual({ foo: 1, bar: 2 });
   });
+
+  it("deleted node, should not affect parent, node", () => {
+    const parent = createSubject({ child: { value: 1 }});
+    const { child } = parent;
+    parent({ a: 1 }); // `child` will be unmounted
+    child.value = 2;
+    expect(parent()).toEqual({ a: 1 });
+  });
 });
 
 describe("array updates", () => {
@@ -113,7 +121,7 @@ describe("array updates", () => {
     expect(subject.tags()).toEqual(["b", "c", "d"]);
   });
 
-  it ("manage deleted key:", () => {
+  it ("manage deleted key", () => {
     const subject = createSubject({ tags: ["a", "b", "c"] });
     let log = "";
     runInReactiveScope(() => {
@@ -124,7 +132,9 @@ describe("array updates", () => {
     subject.tags = newTags;
     expect(log).toBe("b");
     subject.tags = [];
-    expect(log).toBe(undefined);
+    // TODO: right now I think, that, if a key doesn't exist in object,
+    // then it should be entirely unmounted from any parent subscription.
+    expect(log).toBe("b");
   });
 
   it("swap items", () => {

@@ -1,5 +1,6 @@
 import { getActiveScope, observeInScope } from "./scope";
 
+const UNMOUNT = Object.freeze({});
 const batches = [];
 
 export const batch = (cb) => {
@@ -24,6 +25,7 @@ export const batch = (cb) => {
 const handlers = (onChange) => {
   const cache = new Map();
   const listeners = new Set();
+  let onChangeRef = onChange;
   const subscribe = (listener) => {
     listeners.add(listener);
     return () => {
@@ -37,8 +39,8 @@ const handlers = (onChange) => {
   };
   const updateValue = (target, newValue) => {
     target.__curried = newValue;
-    if (onChange) {
-      onChange(target.__curried);
+    if (onChangeRef) {
+      onChangeRef(target.__curried);
     }
     // will this ever be true ?
     if (batches.length === 0) {
@@ -80,17 +82,25 @@ const handlers = (onChange) => {
   return {
     apply: (target, thisArg, args) => {
       if (args.length > 0) {
-        batch(() => {
-          // replace root value;
-          const newValue = args[0];
-          updateValue(target, newValue);
-          // reconcile
-          for (const [childKey, childValue] of cache.entries()) {
-            if (childValue.__curried !== newValue[childKey]) {
-              childValue(newValue[childKey]);
+        const newValue = args[0];
+        if (newValue === UNMOUNT) {
+          onChangeRef = undefined;
+        } else {
+          batch(() => {
+            // replace root value;
+            updateValue(target, newValue);
+            for (const [childKey, childValue] of cache.entries()) {
+              if (newValue !== undefined && newValue !== null && childKey in newValue) {
+                if (childValue.__curried !== newValue[childKey]) {
+                  childValue(newValue[childKey]);
+                }
+              } else {
+                childValue(UNMOUNT);
+                cache.delete(childKey);
+              }
             }
-          }
-        });
+          });
+        }
       } else {
         const scope = getActiveScope();
         if (scope) {

@@ -59,4 +59,27 @@ describe("scope", () => {
     destroyScope(runInReactiveScope(() => () => invoked = true));
     expect(invoked).toEqual(true);
   });
+
+  it("manage deleted observed keys", () => {
+    const state = createSubject({ user: { firstName: "Urshulia" }, country: "vkl" });
+    let invocationsCount = 0;
+    runInReactiveScope(() => {
+      invocationsCount++;
+    });
+    expect(invocationsCount).toEqual(1);
+    state({ country: "rp" });
+    expect(invocationsCount).toEqual(1);
+  });
+
+  it("manage deleted observed array entries", () => {
+    const { tags } = createSubject({ tags: [{ label: "a" }, { label: "b" }, { label: "c" }] });
+    let log;
+    const firstTag = tags[0];
+    runInReactiveScope(() => {
+      log = firstTag.label();
+    });
+    expect(log).toEqual("a");
+    tags(tags().slice(0, -1));
+    expect(log).toEqual("a");
+  });
 });
