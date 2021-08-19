@@ -25,6 +25,7 @@ export const batch = (cb) => {
 const handlers = (onChange) => {
   const cache = new Map();
   const listeners = new Set();
+  let reconciling = false;
   let onChangeRef = onChange;
   const subscribe = (listener) => {
     listeners.add(listener);
@@ -56,6 +57,9 @@ const handlers = (onChange) => {
   const proxifyKeyCached = (target, key) => {
     if (!cache.has(key)) {
       const result = createSubject(target.__curried[key], (newValue) => {
+        if (reconciling) {
+          return;
+        }
         if (Array.isArray(target.__curried)) {
           const index = parseInt(key, 10);
           if (isNaN(index)) {
@@ -89,6 +93,7 @@ const handlers = (onChange) => {
           batch(() => {
             // replace root value;
             updateValue(target, newValue);
+            reconciling = true;
             for (const [childKey, childValue] of cache.entries()) {
               if (newValue !== undefined && newValue !== null && childKey in newValue) {
                 if (childValue.__curried !== newValue[childKey]) {
@@ -99,6 +104,7 @@ const handlers = (onChange) => {
                 cache.delete(childKey);
               }
             }
+            reconciling = false;
           });
         }
       } else {

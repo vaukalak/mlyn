@@ -52,6 +52,36 @@ describe("subject", () => {
     expect(subject.count()).toBe(1);
   });
 
+  it("should update subject from subject field subscription", () => {
+    const subject = createSubject({
+      firstName: "Barbara",
+      lastName: "Radzivil",
+    });
+    runInReactiveScope(() => {
+      if (subject.firstName() === "Alzhbeta") {
+        subject.lastName = "Sapeha";
+      }
+    });
+    subject.firstName = "Alzhbeta";
+    expect(subject()).toEqual({ firstName: "Alzhbeta", lastName: "Sapeha" });
+  });
+
+  it("children should not dispatch back during reconciliation", () => {
+    const firstState = {
+      foo: { value: 1 },
+    };
+    const subject = createSubject(firstState);
+    // this line is important, cause it creates a cache key
+    // without it, test is not valid!
+    expect(subject.foo.value()).toBe(1);
+
+    const secondState = {
+      foo: { value: 2 },
+    };
+    subject(secondState);
+    expect(subject()).toBe(secondState);
+  });
+
   it("reconcile should update only changed", () => {
     const foo = { value: 1 };
     const bar = { value: 1 };
