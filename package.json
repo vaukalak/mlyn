@@ -1,6 +1,6 @@
 {
   "name": "mlyn",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "main": "src/index.js",
   "descrition": "javascript immutable state utility",
   "author": "vaukalak",
