@@ -55,3 +55,19 @@ export const createSubjectSelector = (projection) => {
     return resultingSubject;
   };
 };
+
+// todo: cover with tests
+export const createSelector = (projection, equal) => {
+  return (...args) => {
+    const resultingSubject = createSubject();
+    let lastValue;
+    runInReactiveScope(() => {
+      const newValue = projection(...args);
+      if (!equal(lastValue, newValue)) {
+        lastValue = newValue;
+        resultingSubject(lastValue);
+      }
+    });
+    return resultingSubject;
+  };
+};
