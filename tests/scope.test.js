@@ -1,5 +1,5 @@
 import { runInReactiveScope, muteScope, destroyScope } from "../src/scope";
-import { createSubject } from "../src/subject";
+import { createSubject, batch } from "../src/subject";
 
 describe("scope", () => {
   it("should run in scope", () => {
@@ -23,6 +23,21 @@ describe("scope", () => {
       `user name is Abraham`,
       `user name is Albert`,
     ]);
+  });
+
+  it("should not retrigger scope by an update", () => {
+    const a = createSubject({ foo: 1, bar: 1 });
+    const b = createSubject(0);
+    runInReactiveScope(() => {
+      b(a.foo() + 1);
+    });
+    expect(b()).toEqual(2);
+    batch(() => {
+      batch(() => {
+        a({ foo: 2, bar: 0 });
+      })
+    });
+    expect(b()).toEqual(3);
   });
 
   it("should not rerun muted scope", () => {
