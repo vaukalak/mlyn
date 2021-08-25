@@ -1,12 +1,15 @@
 {
   "name": "mlyn",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "main": "src/index.js",
   "types": "types/index.d.ts",
   "descrition": "reactive immutable state",
   "author": "vaukalak",
   "repository": "https://github.com/vaukalak/mlyn",
-  "files": ["lib", "types"],
+  "files": [
+    "lib",
+    "types"
+  ],
   "scripts": {
     "ts": "npx tsc --rootDir src --declarationDir types --downlevelIteration --declaration --emitDeclarationOnly",
     "test": "npx jest",
