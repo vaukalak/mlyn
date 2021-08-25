@@ -1,3 +1,3 @@
-export { createSubject, batch } from "./subject";
+export { createSubject, batch, Subject } from "./subject";
 export { createSubjectSelector, createSelector } from "./selectors";
-export { runInReactiveScope, destroyScope, muteScope } from "./scope";
+export { runInReactiveScope, destroyScope, muteScope, Scope } from "./scope";

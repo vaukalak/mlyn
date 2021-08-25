@@ -143,7 +143,7 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
   };
 };
 
-type Subject<T> = { [K in keyof T]: Subject<T[K]> }
+export type Subject<T> = { [K in keyof T]: Subject<T[K]> }
   & (() => T)
   & ((newValue: T) => void);
 

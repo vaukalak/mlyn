@@ -1,6 +1,6 @@
 type ScopeCallback = (() => void) | (() => Function);
 
-interface Scope {
+export interface Scope {
   dependencies: Set<Function>;
   callback: () => void;
   destroy?: Function;
