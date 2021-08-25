@@ -14,7 +14,7 @@
     "ts": "npx tsc --rootDir src --declarationDir types --downlevelIteration --declaration --emitDeclarationOnly",
     "test": "npx jest",
     "clean": "rm -rf dist",
-    "build": "npx babel src --out-dir lib && npm ts",
+    "build": "npx babel src --out-dir lib && yarn ts",
     "prepublish": "yarn clean && yarn build"
   },
   "devDependencies": {
