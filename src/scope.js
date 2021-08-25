@@ -33,6 +33,7 @@ export const runInReactiveScope = (callback) => {
     dependencies: new Set(),
     callback: () => {
       if (!newScope.destroyed) {
+        const prevScope = currentScope;
         currentScope = newScope;
         destroyScope(newScope);
         newScope.destroyed = false;
