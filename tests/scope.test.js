@@ -75,6 +75,22 @@ describe("scope", () => {
     expect(invoked).toEqual(true);
   });
 
+  it("invoked scope should not add dependencies", () => {
+    const input = createSubject(1);
+    const output = createSubject(0);
+    let outputCalls = 0;
+    runInReactiveScope(() => {
+      output();
+      outputCalls++;
+    });
+    runInReactiveScope(() => {
+      output(input());
+    });
+    expect(outputCalls).toEqual(2);
+    input(2);
+    expect(outputCalls).toEqual(3);
+  });
+
   it("manage deleted observed keys", () => {
     const state = createSubject({ user: { firstName: "Urshulia" }, country: "vkl" });
     let invocationsCount = 0;

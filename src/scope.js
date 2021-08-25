@@ -15,9 +15,9 @@ export const destroyScope = (scope) => {
   for (const dependency of dependencies.values()) {
     dependency();
   }
-  if (destroy) {
+  if (destroy && typeof destroy === "function") {
     destroy();
-  }
+  } 
 };
 
 export const muteScope = (callback) => {
@@ -33,14 +33,17 @@ export const runInReactiveScope = (callback) => {
     dependencies: new Set(),
     callback: () => {
       if (!newScope.destroyed) {
-        callback();
+        currentScope = newScope;
+        destroyScope(newScope);
+        newScope.destroyed = false;
+        newScope.destroy = callback();
+        currentScope = prevScope;
       }
     },
     destroyed: false,
   };
   currentScope = newScope;
-  const destroy = callback();
-  newScope.destroy = destroy;
+  newScope.destroy = callback();
   currentScope = prevScope;
   return newScope;
 };

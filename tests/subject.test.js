@@ -204,7 +204,7 @@ describe("batch updated", () => {
     expect(logs).toEqual(["0-1", "0-2", "0-3"]);
   });
 
-  test.skip("invoking batched context", () => {
+  test("invoking batched context", () => {
     const { showFull, firstName, lastName } = createSubject({
       showFull: true,
       firstName: "John",
