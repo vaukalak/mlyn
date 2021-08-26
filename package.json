@@ -1,7 +1,7 @@
 {
   "name": "mlyn",
   "version": "0.3.4",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "types": "types/index.d.ts",
   "descrition": "reactive immutable state",
   "author": "vaukalak",
