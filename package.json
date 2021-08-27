@@ -1,6 +1,6 @@
 {
   "name": "mlyn",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "descrition": "reactive immutable state",
@@ -13,7 +13,7 @@
   "scripts": {
     "ts": "npx tsc --rootDir src --declarationDir types --downlevelIteration --declaration --emitDeclarationOnly",
     "test": "npx jest",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf lib && rm -rf types",
     "build": "npx babel src --extensions '.ts' --out-dir lib && yarn ts",
     "prepublish": "yarn clean && yarn build"
   },
