@@ -106,7 +106,7 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
           updateValue(target, newValue);
           reconciling = true;
           for (const [childKey, childValue] of cache.entries()) {
-            if (newValue !== undefined && newValue !== null && childKey in newValue) {
+            if (typeof newValue === "object" && childKey in newValue) {
               if (childValue.__curried !== newValue[childKey]) {
                 childValue(newValue[childKey]);
               }
