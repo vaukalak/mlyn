@@ -1,5 +1,5 @@
-import { createSubject } from "./subject";
-import { runInReactiveScope, destroyScope, muteScope } from "./scope";
+import { createSubject, Subject } from "./subject";
+import { runInReactiveScope, destroyScope, muteScope, Scope } from "./scope";
 
 export const createSyncronizer = (outSubject) => {
   let inScope;
@@ -56,23 +56,32 @@ export const createSubjectSelector = (projection) => {
   };
 };
 
-export const projectArray = (array$, projection, getKey) => {
+export const projectArray = <T extends any>(
+  array$: Subject<T[]>,
+  projection: (array: Subject<T[]>) => T[],
+  getKey: (item: T) => string
+) => {
+  type CacheEntry = {
+    item$: Subject<T>;
+    index: number;
+    scope: Scope;
+  };
   let block = false;
-  let keyToOriginalIndex = {};
-  const filterEntries = () => {
-    const newKeyToOriginalIndex = {};
+  let keyToOriginalIndex: { [key: string]: number } = {};
+  const projectEntries = () => {
+    const newKeyToOriginalIndex: { [key: string]: number } = {};
     array$().forEach((e, i) => (newKeyToOriginalIndex[getKey(e)] = i));
     const result = projection(array$);
     keyToOriginalIndex = newKeyToOriginalIndex;
     return result;
   };
-  const filtered$ = createSubject([]);
+  const filtered$ = createSubject<T[]>([]);
 
-  let cache = {};
+  let cache: { [key: string]: CacheEntry } = {};
   let blockPropagation = false;
-  let prevItems;
+  let prevItems: T[];
   const projectionScope = runInReactiveScope(() => {
-    const entries = filterEntries();
+    const entries = projectEntries();
     const bypassBlock = (() => {
       if (!prevItems || prevItems.length !== entries.length) {
         return true;
@@ -86,8 +95,7 @@ export const projectArray = (array$, projection, getKey) => {
     muteScope(() => {
       blockPropagation = true;
       filtered$(entries);
-      blockPropagation = false;
-      const untouched = { ...cache };
+      const untouched: { [key: string]: CacheEntry } = { ...cache };
       entries.forEach((e, i) => {
         const key = getKey(e);
         delete untouched[key];
@@ -109,10 +117,11 @@ export const projectArray = (array$, projection, getKey) => {
           cache[key] = {
             item$,
             index: i,
-            scope
+            scope,
           };
         }
       });
+      blockPropagation = false;
       Object.keys(untouched).forEach((key) => {
         destroyScope(cache[key].scope);
         delete cache[key];
