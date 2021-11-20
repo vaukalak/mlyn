@@ -8,7 +8,7 @@ export const createSyncronizer = <T extends any>(
 ): Syncronizer<T> => {
   let destroyInScope: () => void;
   let destroyOutScope: () => void;
-  const NOT_INITIALIZED = Object.freeze({});
+  const NOT_INITIALIZED: any = Object.freeze({});
   return [
     (inSubject: Subject<T>) => {
       if (destroyOutScope) {
@@ -17,8 +17,8 @@ export const createSyncronizer = <T extends any>(
       if (destroyInScope) {
         destroyInScope();
       }
-      let lastInValue = NOT_INITIALIZED;
-      let lastOutValue = NOT_INITIALIZED;
+      let lastInValue: T = NOT_INITIALIZED;
+      let lastOutValue: T = NOT_INITIALIZED;
       destroyInScope = runInReactiveScope(() => {
         const inValue = inSubject();
         if (lastInValue !== inValue) {
