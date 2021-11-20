@@ -50,6 +50,9 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
     }
   };
   const updateValue = (target: Curried<T>, newValue: T) => {
+    if (target.__curried === newValue) {
+      return;
+    }
     target.__curried = newValue;
     if (onChangeRef) {
       onChangeRef(target.__curried);

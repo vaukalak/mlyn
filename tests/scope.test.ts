@@ -69,6 +69,19 @@ describe("scope", () => {
     expect(lastMuted).toEqual(1);
   });
 
+  it("should not invoke when value unchanged", () => {
+    const s$ = createSubject({ a: 0 });
+    let invocations = 0;
+    runInReactiveScope(() => {
+      s$.a();
+      invocations++;
+    });
+    expect(invocations).toEqual(1);
+    s$.a(0);
+    expect(invocations).toEqual(1);
+    s$({ a: 1 });
+  });
+
   it("should invoke unsubscribe", () => {
     let invoked = false;
     runInReactiveScope(() => () => invoked = true)();
