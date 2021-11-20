@@ -1,4 +1,4 @@
-import { runInReactiveScope, muteScope, destroyScope } from "../src/scope";
+import { runInReactiveScope, muteScope } from "../src/scope";
 import { createSubject, batch } from "../src/subject";
 
 describe("scope", () => {
@@ -10,13 +10,13 @@ describe("scope", () => {
         lastName: "Smith",
       },
     });
-    const scope = runInReactiveScope(() => {
+    const destroyScope = runInReactiveScope(() => {
       logs.push(`user name is ${subject.user.firstName()}`);
     });
     subject.user.firstName("Abraham");
     subject.user({ ...subject.user(), firstName: "Albert" });
     subject.user({ ...subject.user(), lastName: "Lincoln" });
-    destroyScope(scope);
+    destroyScope();
     subject.user.firstName("Lion");
     expect(logs).toEqual([
       `user name is John`,
@@ -71,7 +71,7 @@ describe("scope", () => {
 
   it("should invoke unsubscribe", () => {
     let invoked = false;
-    destroyScope(runInReactiveScope(() => () => invoked = true));
+    runInReactiveScope(() => () => invoked = true)();
     expect(invoked).toEqual(true);
   });
 

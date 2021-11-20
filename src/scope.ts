@@ -1,7 +1,7 @@
 type ScopeCallback = (() => void) | (() => Function);
 
 export interface Scope {
-  dependencies: Set<Function>;
+  dependencyDestroyers: Set<Function>;
   callback: () => void;
   destroy?: Function;
   destroyed: boolean;
@@ -14,14 +14,14 @@ export const getActiveScope = () => {
 };
 
 export const observeInScope = (scope: Scope, subscribe: (cb: Function) => Function) => {
-  scope.dependencies.add(subscribe(scope.callback));
+  scope.dependencyDestroyers.add(subscribe(scope.callback));
 };
 
-export const destroyScope = (scope) => {
-  const { dependencies, destroy } = scope;
+export const destroyScope = (scope: Scope) => {
+  const { dependencyDestroyers, destroy } = scope;
   scope.destroyed = true;
-  for (const dependency of dependencies.values()) {
-    dependency();
+  for (const dependencyDestroyer of dependencyDestroyers.values()) {
+    dependencyDestroyer();
   }
   if (destroy && typeof destroy === "function") {
     destroy();
@@ -38,12 +38,12 @@ export const muteScope = (callback: Function) => {
 export const runInReactiveScope = (callback: ScopeCallback) => {
   const prevScope = currentScope;
   const newScope: Partial<Scope> = {
-    dependencies: new Set(),
+    dependencyDestroyers: new Set(),
     callback: () => {
       if (!newScope.destroyed) {
         const prevScope = currentScope;
         currentScope = newScope as Scope;
-        destroyScope(newScope);
+        destroyScope(newScope as Scope);
         newScope.destroyed = false;
         newScope.destroy = callback() as Function | undefined;
         currentScope = prevScope;
@@ -54,5 +54,5 @@ export const runInReactiveScope = (callback: ScopeCallback) => {
   currentScope = newScope as Scope;
   newScope.destroy = callback() as Function | undefined;
   currentScope = prevScope;
-  return newScope as Scope;
+  return () => destroyScope(newScope as Scope);
 };

@@ -1,6 +1,8 @@
 import { getActiveScope, observeInScope } from "./scope";
 
-interface Batch { listeners: Set<Function> }
+interface Batch {
+  listeners: Set<Function>;
+}
 
 const UNMOUNT = Object.freeze({});
 const batches: Batch[] = [];
@@ -72,15 +74,20 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
         if (Array.isArray(target.__curried)) {
           const index = parseInt(key, 10);
           if (isNaN(index)) {
-            throw new Error(`trying to set non numeric key "${key}" of type "${typeof key}" to array object`);
+            throw new Error(
+              `trying to set non numeric key "${key}" of type "${typeof key}" to array object`
+            );
           }
           // is map the most performant way?
-          updateValue(target, target.__curried.map((e, i) => {
-            if (i === index) {
-              return newValue;
-            }
-            return e;
-          }));
+          updateValue(
+            target,
+            target.__curried.map((e, i) => {
+              if (i === index) {
+                return newValue;
+              }
+              return e;
+            })
+          );
         } else {
           updateValue(target, {
             ...target.__curried,
@@ -92,8 +99,11 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
     }
     return cache.get(key);
   };
-  type Apply = (target: Curried<T>, thisArg: any, args: []) => T |
-    ((target: Curried<T>, thisArg: any, args: [T]) => void);
+  type Apply = (
+    target: Curried<T>,
+    thisArg: any,
+    args: []
+  ) => T | ((target: Curried<T>, thisArg: any, args: [T]) => void);
   const apply: Apply = (target, thisArg, args) => {
     if (args.length > 0) {
       // @ts-ignore
@@ -127,33 +137,45 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
       // in this case just returns a value;
     }
     return target.__curried;
-  }
+  };
   return {
     apply,
-    get: <K extends Extract<keyof T, string>>(target: Curried<T>, key: K): T => {
+    get: <K extends Extract<keyof T, string>>(
+      target: Curried<T>,
+      key: K
+    ): T => {
       if (key === "__curried") {
         return target.__curried;
       }
       return proxifyKeyCached(target, key);
     },
-    set: <K extends Extract<keyof T, string>>(target: Curried<T>, key: K, value: T[K]) => {
+    set: <K extends Extract<keyof T, string>>(
+      target: Curried<T>,
+      key: K,
+      value: T[K]
+    ) => {
       proxifyKeyCached(target, key)(value);
       return true;
     },
   };
 };
 
-export type Subject<T> = { [K in keyof T]: Subject<T[K]> }
-  & (() => T)
-  & ((newValue: T) => void);
+export type PrimitiveSubject<T> = (() => T) & ((newValue: T) => void);
 
-declare global  {
+export type Subject<T> = {
+  [K in keyof T]: Subject<T[K]>;
+} & PrimitiveSubject<T>;
+
+declare global {
   interface ProxyConstructor {
-      new <T>(target: Curried<T>, handler: ProxyHandler<Curried<T>>): Subject<T>;
+    new <T>(target: Curried<T>, handler: ProxyHandler<Curried<T>>): Subject<T>;
   }
 }
 
-export const createSubject = <T>(target: T, onChange?: (newValue: T) => any) => {
+export const createSubject = <T>(
+  target: T,
+  onChange?: (newValue: T) => any
+) => {
   // this function is never invocked, but js
   // doesn't like invoking a function on a proxy
   // which target is not a function :P

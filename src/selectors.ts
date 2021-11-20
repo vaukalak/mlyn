@@ -1,59 +1,100 @@
 import { createSubject, Subject } from "./subject";
-import { runInReactiveScope, destroyScope, muteScope, Scope } from "./scope";
+import { runInReactiveScope, muteScope } from "./scope";
 
-export const createSyncronizer = (outSubject) => {
-  let inScope;
-  let outScope;
+type Syncronizer<T> = [(s: Subject<T>) => void, () => void];
+
+export const createSyncronizer = <T extends any>(
+  outSubject: Subject<T>
+): Syncronizer<T> => {
+  let destroyInScope: () => void;
+  let destroyOutScope: () => void;
   const NOT_INITIALIZED = Object.freeze({});
-  return (inSubject) => {
-    if (outScope) {
-      destroyScope(outScope);
-    }
-    if (inScope) {
-      destroyScope(inScope);
-    }
-    let lastInValue = NOT_INITIALIZED;
-    let lastOutValue = NOT_INITIALIZED;
-    inScope = runInReactiveScope(() => {
-      const inValue = inSubject();
-      if (lastInValue !== inValue) {
-        lastInValue = inValue;
-        if (lastOutValue !== lastInValue) {
-          outSubject(lastInValue);
-        }
+  return [
+    (inSubject: Subject<T>) => {
+      if (destroyOutScope) {
+        destroyOutScope();
       }
-    });
+      if (destroyInScope) {
+        destroyInScope();
+      }
+      let lastInValue = NOT_INITIALIZED;
+      let lastOutValue = NOT_INITIALIZED;
+      destroyInScope = runInReactiveScope(() => {
+        const inValue = inSubject();
+        if (lastInValue !== inValue) {
+          lastInValue = inValue;
+          if (lastOutValue !== lastInValue) {
+            outSubject(lastInValue);
+          }
+        }
+      });
 
-    outScope = runInReactiveScope(() => {
-      const outValue = outSubject();
-      if (lastOutValue !== outValue) {
-        lastOutValue = outValue;
-        if (lastOutValue !== lastInValue) {
-          inSubject(lastOutValue);
+      destroyOutScope = runInReactiveScope(() => {
+        const outValue = outSubject();
+        if (lastOutValue !== outValue) {
+          lastOutValue = outValue;
+          if (lastOutValue !== lastInValue) {
+            inSubject(lastOutValue);
+          }
         }
-      }
-    });
-  };
+      });
+    },
+    () => {
+      destroyInScope();
+      destroyOutScope();
+    },
+  ];
 };
 
+// deprecated
 export const createSubjectSelector = (projection) => {
-  let syncronizerScope;
+  let destroySyncronizerScope;
   return (...args) => {
-    if (syncronizerScope) {
-      destroyScope(syncronizerScope);
+    if (destroySyncronizerScope) {
+      destroySyncronizerScope();
     }
     const resultingSubject = createSubject(undefined);
-    const syncronizer = createSyncronizer(resultingSubject);
+    const [syncronizer] = createSyncronizer(resultingSubject);
     let lastSelectedSubject;
-    syncronizerScope = runInReactiveScope(() => {
+    destroySyncronizerScope = runInReactiveScope(() => {
       const newValue = projection(...args);
       if (lastSelectedSubject !== newValue) {
         lastSelectedSubject = newValue;
         syncronizer(lastSelectedSubject);
       }
     });
-    return resultingSubject;
+    return [
+      resultingSubject,
+      () => {
+        destroySyncronizerScope();
+      },
+    ];
   };
+};
+
+type Projection<T> = [Subject<T>, () => void];
+
+export const projectSubject = <T>(
+  projection: () => Subject<T>
+): Projection<T> => {
+  const resultingSubject = createSubject<T>(undefined);
+  const [syncronizer, destroySyncronizerScope] =
+    createSyncronizer(resultingSubject);
+  let lastSelectedSubject;
+  const destroyProjectionScope = runInReactiveScope(() => {
+    const newValue = projection();
+    if (lastSelectedSubject !== newValue) {
+      lastSelectedSubject = newValue;
+      syncronizer(lastSelectedSubject);
+    }
+  });
+  return [
+    resultingSubject,
+    () => {
+      destroySyncronizerScope();
+      destroyProjectionScope();
+    },
+  ];
 };
 
 export const projectArray = <T extends any>(
@@ -64,7 +105,7 @@ export const projectArray = <T extends any>(
   type CacheEntry = {
     item$: Subject<T>;
     index: number;
-    scope: Scope;
+    destroyScope: () => void;
   };
   let block = false;
   let keyToOriginalIndex: { [key: string]: number } = {};
@@ -101,7 +142,7 @@ export const projectArray = <T extends any>(
         delete untouched[key];
         if (!cache[key] || cache[key].index !== i) {
           if (cache[key]) {
-            destroyScope(cache[key].scope);
+            cache[key].destroyScope();
           }
           const item$ = filtered$[i];
           const scope = runInReactiveScope(() => {
@@ -117,13 +158,13 @@ export const projectArray = <T extends any>(
           cache[key] = {
             item$,
             index: i,
-            scope,
+            destroyScope: scope,
           };
         }
       });
       blockPropagation = false;
       Object.keys(untouched).forEach((key) => {
-        destroyScope(cache[key].scope);
+        cache[key].destroyScope();
         delete cache[key];
       });
     });
