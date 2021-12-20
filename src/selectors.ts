@@ -97,10 +97,11 @@ export const projectSubject = <T>(
   ];
 };
 
-export const projectArray = <T extends any>(
+export const projectArray = <T extends any, R = T>(
   array$: Subject<T[]>,
   projection: (array: Subject<T[]>) => T[],
-  getKey: (item: T) => string
+  getKey: (item: T) => string,
+  bindBack?: (item: R, keyToIndex: Record<string, number>) => void,
 ) => {
   type CacheEntry = {
     item$: Subject<T>;
@@ -116,7 +117,7 @@ export const projectArray = <T extends any>(
     keyToOriginalIndex = newKeyToOriginalIndex;
     return result;
   };
-  const filtered$ = createSubject<T[]>([]);
+  const projected$ = createSubject<T[]>([]);
 
   let cache: { [key: string]: CacheEntry } = {};
   let blockPropagation = false;
@@ -135,7 +136,7 @@ export const projectArray = <T extends any>(
     }
     muteScope(() => {
       blockPropagation = true;
-      filtered$(entries);
+      projected$(entries);
       const untouched: { [key: string]: CacheEntry } = { ...cache };
       entries.forEach((e, i) => {
         const key = getKey(e);
@@ -144,7 +145,7 @@ export const projectArray = <T extends any>(
           if (cache[key]) {
             cache[key].destroyScope();
           }
-          const item$ = filtered$[i];
+          const item$ = projected$[i];
           const scope = runInReactiveScope(() => {
             const item = item$();
             if (blockPropagation) {
@@ -169,7 +170,7 @@ export const projectArray = <T extends any>(
       });
     });
   });
-  return [filtered$, projectionScope];
+  return [projected$, projectionScope];
 };
 
 // todo: cover with tests

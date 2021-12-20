@@ -1,11 +1,9 @@
 import { getActiveScope, observeInScope } from "./scope";
 
-interface Batch {
-  listeners: Set<Function>;
-}
-
 const UNMOUNT = Object.freeze({});
-const batches: Batch[] = [];
+let currentCycle = 0;
+let batches = 0;
+let batched: Set<Function> = new Set([]);
 
 type AnyFunction = (...args: any[]) => any;
 
@@ -15,22 +13,25 @@ type Curried<T> = {
 };
 
 export const batch = (cb: AnyFunction) => {
-  const currentBatch: Batch = { listeners: new Set() };
-  batches.push(currentBatch);
+  batches++;
   cb();
-  batches.pop();
-  if (batches.length === 0) {
-    const previousListeners = new Set([...currentBatch.listeners]);
+  batches--;
+  if (batches === 0) {
+    // console.log("batch end:", currentCycle);
+    currentCycle++;
+    const previousListeners = [...batched];
+    batched.clear();
     for (const listener of previousListeners) {
       listener();
     }
-  } else {
-    const parentBatch = batches[batches.length - 1];
-    parentBatch.listeners = new Set([
-      ...parentBatch.listeners,
-      ...currentBatch.listeners,
-    ]);
   }
+  // else {
+  //   const parentBatch = batches[batches.length - 1];
+  //   parentBatch.listeners = new Set([
+  //     ...parentBatch.listeners,
+  //     ...currentBatch.listeners,
+  //   ]);
+  // }
 };
 
 const handlers = <T>(onChange?: (newValue: T) => any) => {
@@ -58,39 +59,54 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
       onChangeRef(target.__curried);
     }
     // will this ever be true ?
-    if (batches.length === 0) {
+    if (batches === 0) {
       dispatch();
     } else {
-      const currentBatch = batches[batches.length - 1];
-      currentBatch.listeners = new Set([
-        ...currentBatch.listeners,
+      batched = new Set([
+        ...batched,
         ...listeners,
       ]);
     }
   };
   const proxifyKeyCached = (target, key) => {
     if (!cache.has(key)) {
+      let lastCycle = -1;
+      let lastValue;
       const result = createSubject(target.__curried[key], (newValue) => {
         if (reconciling) {
           return;
         }
         if (Array.isArray(target.__curried)) {
           const index = parseInt(key, 10);
+          let bubble = false;
+          if (lastCycle < currentCycle) {
+            lastValue = target.__curried.concat();
+            lastCycle = currentCycle;
+            bubble = true;
+          }
+          console.log("lastCycle:", lastCycle);
+
           if (isNaN(index)) {
             throw new Error(
               `trying to set non numeric key "${key}" of type "${typeof key}" to array object`
             );
           }
           // is map the most performant way?
-          updateValue(
-            target,
-            target.__curried.map((e, i) => {
-              if (i === index) {
-                return newValue;
-              }
-              return e;
-            })
-          );
+          
+          lastValue[index] = newValue; 
+          if (bubble) {
+            updateValue(
+              target,
+              lastValue,
+            );
+          }
+          // const value = target.__curried.concat();
+          // value[index] = newValue;
+
+          // updateValue(
+          //   target,
+          //   value
+          // );
         } else {
           updateValue(target, {
             ...target.__curried,
@@ -114,6 +130,9 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
       if (newValue === UNMOUNT) {
         onChangeRef = undefined;
       } else {
+        if (target.__curried === newValue) {
+          return;
+        }
         batch(() => {
           // replace root value;
           updateValue(target, newValue);
