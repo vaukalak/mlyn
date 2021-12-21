@@ -45,11 +45,6 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
       listeners.delete(listener);
     };
   };
-  const dispatch = () => {
-    for (const listener of listeners.values()) {
-      listener();
-    }
-  };
   const updateValue = (target: Curried<T>, newValue: T) => {
     if (target.__curried === newValue) {
       return;
