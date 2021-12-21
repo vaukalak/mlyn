@@ -1,7 +1,7 @@
 import { getActiveScope, observeInScope } from "./scope";
 
 const UNMOUNT = Object.freeze({});
-let currentCycle = 0;
+// let currentCycle = 0;
 let batches = 0;
 let batched: Set<Function> = new Set([]);
 
@@ -18,7 +18,7 @@ export const batch = (cb: AnyFunction) => {
   batches--;
   if (batches === 0) {
     // console.log("batch end:", currentCycle);
-    currentCycle++;
+    // currentCycle++;
     const previousListeners = [...batched];
     batched.clear();
     for (const listener of previousListeners) {
@@ -58,34 +58,21 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
     if (onChangeRef) {
       onChangeRef(target.__curried);
     }
-    // will this ever be true ?
-    if (batches === 0) {
-      dispatch();
-    } else {
-      batched = new Set([
-        ...batched,
-        ...listeners,
-      ]);
-    }
+    batched = new Set([
+      ...batched,
+      ...listeners,
+    ]);
   };
   const proxifyKeyCached = (target, key) => {
     if (!cache.has(key)) {
-      let lastCycle = -1;
-      let lastValue;
+      // let lastCycle = -1;
+      // let lastValue;
       const result = createSubject(target.__curried[key], (newValue) => {
         if (reconciling) {
           return;
         }
         if (Array.isArray(target.__curried)) {
           const index = parseInt(key, 10);
-          let bubble = false;
-          if (lastCycle < currentCycle) {
-            lastValue = target.__curried.concat();
-            lastCycle = currentCycle;
-            bubble = true;
-          }
-          console.log("lastCycle:", lastCycle);
-
           if (isNaN(index)) {
             throw new Error(
               `trying to set non numeric key "${key}" of type "${typeof key}" to array object`
@@ -93,20 +80,13 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
           }
           // is map the most performant way?
           
-          lastValue[index] = newValue; 
-          if (bubble) {
-            updateValue(
-              target,
-              lastValue,
-            );
-          }
-          // const value = target.__curried.concat();
-          // value[index] = newValue;
-
-          // updateValue(
-          //   target,
-          //   value
-          // );
+          const newArray = [...target.__curried];
+          newArray[index] = newValue;
+          updateValue(
+            target,
+            // @ts-ignore
+            newArray,
+          );
         } else {
           updateValue(target, {
             ...target.__curried,
@@ -136,18 +116,20 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
         batch(() => {
           // replace root value;
           updateValue(target, newValue);
-          reconciling = true;
-          for (const [childKey, childValue] of cache.entries()) {
-            if (typeof newValue === "object" && childKey in newValue) {
-              if (childValue.__curried !== newValue[childKey]) {
-                childValue(newValue[childKey]);
+          if (typeof newValue === "object") {
+            reconciling = true;
+            for (const [childKey, childValue] of cache.entries()) {
+              if (childKey in newValue) {
+                if (childValue.__curried !== newValue[childKey]) {
+                  childValue(newValue[childKey]);
+                }
+              } else {
+                childValue(UNMOUNT);
+                cache.delete(childKey);
               }
-            } else {
-              childValue(UNMOUNT);
-              cache.delete(childKey);
             }
+            reconciling = false;
           }
-          reconciling = false;
         });
       }
     } else {
