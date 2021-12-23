@@ -5,4 +5,4 @@ export {
   projectArray,
   projectSubject,
 } from "./selectors";
-export { runInReactiveScope, destroyScope, muteScope, Scope } from "./scope";
+export { runInReactiveScope, runInStaticReactiveScope, destroyScope, muteScope, Scope } from "./scope";

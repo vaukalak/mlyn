@@ -1,10 +1,18 @@
 type ScopeCallback = (() => void) | (() => Function);
 
-export interface Scope {
-  dependencyDestroyers: Function[];
+interface IScope {
   invoke: () => void;
+  observe: (cb: Function) => void;
+  dependencyDestroyers: Function[];
   destroy?: Function;
   destroyed: boolean;
+}
+
+interface StaticScope extends IScope {
+  constructured: boolean;
+}
+export interface Scope extends IScope {
+  
 }
 
 let currentScope: Scope = undefined;
@@ -13,11 +21,11 @@ export const getActiveScope = () => {
   return currentScope;
 };
 
-export const observeInScope = (scope: Scope, subscribe: (cb: Function) => Function) => {
-  scope.dependencyDestroyers.push(subscribe(scope.invoke));
+export const observeInScope = (scope: IScope, subscribe: (cb: Function) => Function) => {
+  scope.observe(subscribe(scope.invoke));
 };
 
-export const destroyScope = (scope: Scope) => {
+export const destroyScope = (scope: IScope) => {
   const { dependencyDestroyers, destroy } = scope;
   scope.destroyed = true;
   for (let i = 0; i < dependencyDestroyers.length; i++) {
@@ -35,10 +43,34 @@ export const muteScope = (callback: Function) => {
   currentScope = prevScope;
 };
 
+export const runInStaticReactiveScope = (callback: ScopeCallback) => {
+  const prevScope = currentScope;
+  const newScope: Partial<StaticScope> = {
+    dependencyDestroyers: [],
+    observe: () => {
+      if (!newScope.constructured) {
+        newScope.dependencyDestroyers.push(callback);
+      }
+    },
+    invoke: () => {
+      newScope.destroy = callback() as Function | undefined;
+    },
+    destroyed: false,
+  };
+  currentScope = newScope as Scope;
+  newScope.destroy = callback() as Function | undefined;
+  newScope.constructured = true;
+  currentScope = prevScope;
+  return () => destroyScope(newScope as Scope);
+};
+
 export const runInReactiveScope = (callback: ScopeCallback) => {
   const prevScope = currentScope;
   const newScope: Partial<Scope> = {
     dependencyDestroyers: [],
+    observe: (callback) => {
+      newScope.dependencyDestroyers.push(callback);
+    },
     invoke: () => {
       if (!newScope.destroyed) {
         const prevScope = currentScope;

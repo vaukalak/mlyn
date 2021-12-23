@@ -19,11 +19,17 @@ export const batch = (cb: AnyFunction) => {
   if (batches === 0) {
     // console.log("batch end:", currentCycle);
     // currentCycle++;
-    const previousListeners = [...batched];
-    batched.clear();
-    for (const listener of previousListeners) {
-      listener();
-    }
+
+    // const previousListeners = [...batched];
+    // batched.clear();
+
+    const previousListeners = batched;
+    batched = new Set();
+
+    previousListeners.forEach(l => l());
+    // for (const listener of previousListeners) {
+    //   listener();
+    // }
   }
   // else {
   //   const parentBatch = batches[batches.length - 1];
@@ -53,10 +59,13 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
     if (onChangeRef) {
       onChangeRef(target.__curried);
     }
-    batched = new Set([
-      ...batched,
-      ...listeners,
-    ]);
+    // console.log(">>> batched:", batched);
+    // console.log(">>> listeners:", listeners);
+    listeners.forEach(batched.add, batched);
+    // batched = new Set([
+    //   ...batched,
+    //   ...listeners,
+    // ]);
   };
   const proxifyKeyCached = (target, key) => {
     if (!cache.has(key)) {
