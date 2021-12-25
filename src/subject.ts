@@ -1,9 +1,10 @@
-import { getActiveScope, observeInScope } from "./scope";
+import { getActiveScope } from "./scope";
 
 const UNMOUNT = Object.freeze({});
 // let currentCycle = 0;
 let batches = 0;
-let batched: Set<Function> = new Set([]);
+let batched: Function[] = [];
+let currentBatch = 0;
 
 type AnyFunction = (...args: any[]) => any;
 
@@ -17,38 +18,32 @@ export const batch = (cb: AnyFunction) => {
   cb();
   batches--;
   if (batches === 0) {
-    // console.log("batch end:", currentCycle);
-    // currentCycle++;
-
-    // const previousListeners = [...batched];
-    // batched.clear();
-
     const previousListeners = batched;
-    batched = new Set();
+    batched = [];
 
-    previousListeners.forEach(l => l());
-    // for (const listener of previousListeners) {
-    //   listener();
-    // }
+    const l = previousListeners.length;
+    for (let i = 0; i < l; i++) {
+      const listener = previousListeners[i];
+      // @ts-ignore
+      if (listener.lastBatch !== currentBatch) {
+        // @ts-ignore
+        listener.lastBatch = currentBatch;
+        listener();
+      }
+    }
+    currentBatch++;
   }
-  // else {
-  //   const parentBatch = batches[batches.length - 1];
-  //   parentBatch.listeners = new Set([
-  //     ...parentBatch.listeners,
-  //     ...currentBatch.listeners,
-  //   ]);
-  // }
 };
 
 const handlers = <T>(onChange?: (newValue: T) => any) => {
   const cache = new Map<any, any>();
-  const listeners = new Set<Function>();
+  let listeners: Function[] = [];
   let reconciling = false;
   let onChangeRef = onChange;
   const subscribe = (listener) => {
-    listeners.add(listener);
+    listeners.push(listener);
     return () => {
-      listeners.delete(listener);
+      listeners = listeners.filter(l => l !== listener);
     };
   };
   const updateValue = (target: Curried<T>, newValue: T) => {
@@ -59,18 +54,10 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
     if (onChangeRef) {
       onChangeRef(target.__curried);
     }
-    // console.log(">>> batched:", batched);
-    // console.log(">>> listeners:", listeners);
-    listeners.forEach(batched.add, batched);
-    // batched = new Set([
-    //   ...batched,
-    //   ...listeners,
-    // ]);
+    batched = batched.concat(listeners);
   };
   const proxifyKeyCached = (target, key) => {
     if (!cache.has(key)) {
-      // let lastCycle = -1;
-      // let lastValue;
       const result = createSubject(target.__curried[key], (newValue) => {
         if (reconciling) {
           return;
@@ -139,7 +126,7 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
     } else {
       const scope = getActiveScope();
       if (scope) {
-        observeInScope(scope, subscribe);
+        scope.observe(subscribe);
       }
       // we allow to run outside of scope
       // in this case just returns a value;

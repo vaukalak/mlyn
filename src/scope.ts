@@ -21,9 +21,9 @@ export const getActiveScope = () => {
   return currentScope;
 };
 
-export const observeInScope = (scope: IScope, subscribe: (cb: Function) => Function) => {
-  scope.observe(subscribe(scope.invoke));
-};
+// export const observeInScope = (scope: IScope, subscribe: (cb: Function) => Function) => {
+//   scope.observe(subscribe(scope.invoke));
+// };
 
 export const destroyScope = (scope: IScope) => {
   const { dependencyDestroyers, destroy } = scope;
@@ -47,9 +47,9 @@ export const runInStaticReactiveScope = (callback: ScopeCallback) => {
   const prevScope = currentScope;
   const newScope: Partial<StaticScope> = {
     dependencyDestroyers: [],
-    observe: () => {
+    observe: (subscribe) => {
       if (!newScope.constructured) {
-        newScope.dependencyDestroyers.push(callback);
+        newScope.dependencyDestroyers.push((subscribe(newScope.invoke)));
       }
     },
     invoke: () => {
@@ -68,8 +68,8 @@ export const runInReactiveScope = (callback: ScopeCallback) => {
   const prevScope = currentScope;
   const newScope: Partial<Scope> = {
     dependencyDestroyers: [],
-    observe: (callback) => {
-      newScope.dependencyDestroyers.push(callback);
+    observe: (subscribe) => {
+      newScope.dependencyDestroyers.push(subscribe(newScope.invoke));
     },
     invoke: () => {
       if (!newScope.destroyed) {
