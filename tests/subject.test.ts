@@ -182,7 +182,7 @@ describe("array updates", () => {
   });
 });
 
-describe("batch updated", () => {
+describe.only("batch updated", () => {
   test("do not disptach changes untill batch passed", () => {
     const logs = [];
     const { foo, bar } = createSubject({ foo: 0, bar: 1 });
@@ -204,7 +204,7 @@ describe("batch updated", () => {
     expect(logs).toEqual(["0-1", "0-2", "0-3"]);
   });
 
-  test("invoking batched context", () => {
+  test.only("invoking batched context", () => {
     const { showFull, firstName, lastName } = createSubject({
       showFull: true,
       firstName: "John",
@@ -212,6 +212,7 @@ describe("batch updated", () => {
     });
     const logs = [];
     runInReactiveScope(() => {
+      // console.log(">>> showFull():", showFull());
       if (showFull()) {
         logs.push(`${firstName()} ${lastName()}`);
       } else {
@@ -221,7 +222,9 @@ describe("batch updated", () => {
     firstName("Joseph");
     lastName("Lincoln");
     showFull(false);
+    // console.log(">>> 1");
     lastName("Enstein");
+    // console.log(">>> 2");
     firstName("Alberth");
     showFull(true);
     expect(logs).toEqual([

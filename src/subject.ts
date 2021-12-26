@@ -6,22 +6,13 @@ let batches = 0;
 let batched: Function[] = [];
 let currentBatch = 0;
 
-type AnyFunction = (...args: any[]) => any;
-
-type Curried<T> = {
-  (): void;
-  __curried: T;
-};
-
-export const batch = (cb: AnyFunction) => {
-  batches++;
-  cb();
-  batches--;
+const invokeCallbacksIfNoBatch = () => {
   if (batches === 0) {
     const previousListeners = batched;
     batched = [];
 
     const l = previousListeners.length;
+    // console.log(">>> listeners:", previousListeners);
     for (let i = 0; i < l; i++) {
       const listener = previousListeners[i];
       // @ts-ignore
@@ -35,81 +26,35 @@ export const batch = (cb: AnyFunction) => {
   }
 };
 
-const handlers = <T>(onChange?: (newValue: T) => any) => {
+export const batch = (cb: Function) => {
+  batches++;
+  cb();
+  batches--;
+  invokeCallbacksIfNoBatch();
+};
+
+const handlers = <T>(__curried: T, onChange?: (newValue: T) => any) => {
   const cache = new Map<any, any>();
   let listeners: Function[] = [];
   let reconciling = false;
-  let onChangeRef = onChange;
-  const subscribe = (listener) => {
-    listeners.push(listener);
-    return () => {
-      listeners = listeners.filter(l => l !== listener);
-    };
-  };
-  const updateValue = (target: Curried<T>, newValue: T) => {
-    if (target.__curried === newValue) {
-      return;
-    }
-    target.__curried = newValue;
-    if (onChangeRef) {
-      onChangeRef(target.__curried);
-    }
-    batched = batched.concat(listeners);
-  };
-  const proxifyKeyCached = (target, key) => {
-    if (!cache.has(key)) {
-      const result = createSubject(target.__curried[key], (newValue) => {
-        if (reconciling) {
-          return;
-        }
-        if (Array.isArray(target.__curried)) {
-          const index = parseInt(key, 10);
-          if (isNaN(index)) {
-            throw new Error(
-              `trying to set non numeric key "${key}" of type "${typeof key}" to array object`
-            );
-          }
-          // is map the most performant way?
-          
-          const newArray = [...target.__curried];
-          newArray[index] = newValue;
-          updateValue(
-            target,
-            // @ts-ignore
-            newArray,
-          );
-        } else {
-          updateValue(target, {
-            ...target.__curried,
-            [key]: newValue,
-          });
-        }
-      });
-      cache.set(key, result);
-    }
-    return cache.get(key);
-  };
-  type Apply = (
-    target: Curried<T>,
-    thisArg: any,
-    args: []
-  ) => T | ((target: Curried<T>, thisArg: any, args: [T]) => void);
-  const apply: Apply = (target, thisArg, args) => {
+
+  const apply: Apply<T> = (target, thisArg, args) => {
     if (args.length > 0) {
       // @ts-ignore
       const newValue = args[0] as any;
       if (newValue === UNMOUNT) {
-        onChangeRef = undefined;
+        onChange = undefined;
       } else {
-        if (target.__curried === newValue) {
+        if (__curried === newValue) {
           return;
         }
         batch(() => {
           // replace root value;
-          updateValue(target, newValue);
+          __curried = updateValue(target, newValue, listeners, onChange);
           if (typeof newValue === "object") {
             reconciling = true;
             for (const [childKey, childValue] of cache.entries()) {
+              // console.log(">>> childKey:", childKey);
               if (childKey in newValue) {
                 if (childValue.__curried !== newValue[childKey]) {
                   childValue(newValue[childKey]);
@@ -126,31 +71,60 @@ const handlers = <T>(onChange?: (newValue: T) => any) => {
     } else {
       const scope = getActiveScope();
       if (scope) {
-        scope.observe(subscribe);
+        // console.log(">>> subscribe: ", __curried);
+        scope.observe(listeners);
       }
       // we allow to run outside of scope
       // in this case just returns a value;
     }
-    return target.__curried;
+    return __curried;
   };
   return {
     apply,
-    get: <K extends Extract<keyof T, string>>(
-      target: Curried<T>,
-      key: K
-    ): T => {
+    get: <K extends Extract<keyof T, string>>(target: T, key: K): T => {
       if (key === "__curried") {
-        return target.__curried;
+        return __curried;
       }
-      return proxifyKeyCached(target, key);
-    },
-    set: <K extends Extract<keyof T, string>>(
-      target: Curried<T>,
-      key: K,
-      value: T[K]
-    ) => {
-      proxifyKeyCached(target, key)(value);
-      return true;
+      if (!cache.has(key)) {
+        const result = createSubject(__curried[key], (newValue) => {
+          // console.log(">>> newValue:", newValue);
+          if (reconciling) {
+            return;
+          }
+          if (Array.isArray(__curried)) {
+            const index = parseInt(key, 10);
+            if (isNaN(index)) {
+              throw new Error(
+                `trying to set non numeric key "${key}" of type "${typeof key}" to array object`
+              );
+            }
+            // is map the most performant way?
+
+            const newArray = __curried.concat();
+            newArray[index] = newValue;
+            // @ts-ignore
+            __curried = updateValue(
+              __curried,
+              newArray,
+              listeners,
+              // @ts-ignore
+              onChange
+            );
+          } else {
+            __curried = updateValue(
+              __curried,
+              {
+                ...__curried,
+                [key]: newValue,
+              },
+              listeners,
+              onChange
+            );
+          }
+        });
+        cache.set(key, result);
+      }
+      return cache.get(key);
     },
   };
 };
@@ -163,18 +137,86 @@ export type Subject<T> = {
 
 declare global {
   interface ProxyConstructor {
-    new <T>(target: Curried<T>, handler: ProxyHandler<Curried<T>>): Subject<T>;
+    new <T>(target: Function, handler: ProxyHandler<Function>): Subject<T>;
   }
 }
 
-export const createSubject = <T>(
-  target: T,
+type Primitive = string | number | boolean | symbol | null | undefined;
+
+const updateValue = <T>(
+  prevValue: T,
+  newValue: T,
+  listeners: Function[],
   onChange?: (newValue: T) => any
 ) => {
+  if (prevValue === newValue) {
+    return;
+  }
+  prevValue = newValue;
+  if (onChange) {
+    onChange(prevValue);
+  }
+  // console.log(">>> listeners1:", listeners);
+  batched = batched.concat(listeners);
+  return newValue;
+};
+
+type Apply<T> =
+  | ((target: T, thisArg: any, args: []) => T)
+  | ((target: T, thisArg: any, args: [T]) => void);
+
+const primitiveHandlers = <T extends Primitive>(
+  __curried: T,
+  onChange?: (newValue: T) => any
+) => {
+  let listeners: Function[] = [];
+  return {
+    apply: (target, thisArg, args) => {
+      if (args.length > 0) {
+        // @ts-ignore
+        const newValue = args[0] as any;
+        if (newValue === UNMOUNT) {
+          onChange = undefined;
+        } else {
+          if (__curried === newValue) {
+            return;
+          }
+          __curried = updateValue(__curried, newValue, listeners, onChange);
+          // invokeCallbacksIfNoBatch();
+        }
+      } else {
+        const scope = getActiveScope();
+        if (scope) {
+          scope.observe(listeners);
+        }
+        // we allow to run outside of scope
+        // in this case just returns a value;
+      }
+      return __curried;
+    },
+  } as { apply: Apply<T> };
+};
+
+// this function is never invocked, but js
+// doesn't like invoking a function on a proxy
+// which target is not a function :P
+const applyMock = () => {};
+
+export const createPrimitiveSubject = <T extends Primitive>(
+  initialValue: T,
+  onChange?: (newValue: T) => any
+) => {
+  // @ts-ignore
+  return new Proxy(applyMock, primitiveHandlers(initialValue, onChange));
+};
+
+export const createSubject = <T>(
+  initialValue: T,
+  onChange?: (newValue: T) => any
+): Subject<T> => {
   // this function is never invocked, but js
   // doesn't like invoking a function on a proxy
   // which target is not a function :P
-  const f: Curried<T> = () => f.__curried;
-  f.__curried = target;
-  return new Proxy(f, handlers(onChange));
+  // @ts-ignore
+  return new Proxy(applyMock, handlers(initialValue, onChange));
 };

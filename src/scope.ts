@@ -2,7 +2,7 @@ type ScopeCallback = (() => void) | (() => Function);
 
 interface IScope {
   invoke: () => void;
-  observe: (cb: Function) => void;
+  observe: (listeners: Function[]) => void;
   dependencyDestroyers: Function[];
   destroy?: Function;
   destroyed: boolean;
@@ -19,6 +19,15 @@ let currentScope: Scope = undefined;
 
 export const getActiveScope = () => {
   return currentScope;
+};
+
+
+const subscribe = (listeners: Function[], callback: Function) => {
+  listeners.push(callback);
+  return () => {
+    listeners = listeners.filter(l => l !== callback);
+    // console.log(">>> after destroy:", listeners)
+  };
 };
 
 // export const observeInScope = (scope: IScope, subscribe: (cb: Function) => Function) => {
@@ -47,9 +56,9 @@ export const runInStaticReactiveScope = (callback: ScopeCallback) => {
   const prevScope = currentScope;
   const newScope: Partial<StaticScope> = {
     dependencyDestroyers: [],
-    observe: (subscribe) => {
+    observe: (listeners: Function[]) => {
       if (!newScope.constructured) {
-        newScope.dependencyDestroyers.push((subscribe(newScope.invoke)));
+        newScope.dependencyDestroyers.push((subscribe(listeners, newScope.invoke)));
       }
     },
     invoke: () => {
@@ -68,8 +77,8 @@ export const runInReactiveScope = (callback: ScopeCallback) => {
   const prevScope = currentScope;
   const newScope: Partial<Scope> = {
     dependencyDestroyers: [],
-    observe: (subscribe) => {
-      newScope.dependencyDestroyers.push(subscribe(newScope.invoke));
+    observe: (listeners) => {
+      newScope.dependencyDestroyers.push(subscribe(listeners, newScope.invoke));
     },
     invoke: () => {
       if (!newScope.destroyed) {
