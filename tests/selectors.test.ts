@@ -67,7 +67,9 @@ describe("projectSubject", () => {
       ursulia: "1705/02/13",
     });
     const name$ = createSubject("barbara");
-    const [date$, destroyDate] = projectSubject(() => subject$[name$()]);
+    const [date$, destroyDate] = projectSubject(() => {
+      return subject$[name$()];
+    });
     const dates = [];
     runInReactiveScope(() => {
       dates.push(date$());

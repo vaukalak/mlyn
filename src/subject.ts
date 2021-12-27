@@ -1,4 +1,4 @@
-import { getActiveScope } from "./scope";
+import { getActiveScope, Listener, observeInScope } from "./scope";
 
 const UNMOUNT = Object.freeze({});
 // let currentCycle = 0;
@@ -15,10 +15,12 @@ const invokeCallbacksIfNoBatch = () => {
     // console.log(">>> listeners:", previousListeners);
     for (let i = 0; i < l; i++) {
       const listener = previousListeners[i];
+      // const listener = previousListeners[i];
       // @ts-ignore
       if (listener.lastBatch !== currentBatch) {
         // @ts-ignore
         listener.lastBatch = currentBatch;
+        // @ts-ignore
         listener();
       }
     }
@@ -35,7 +37,7 @@ export const batch = (cb: Function) => {
 
 const handlers = <T>(__curried: T, onChange?: (newValue: T) => any) => {
   const cache = new Map<any, any>();
-  let listeners: Function[] = [];
+  let listeners: Listener[] = [];
   let reconciling = false;
 
   const apply: Apply<T> = (target, thisArg, args) => {
@@ -72,7 +74,7 @@ const handlers = <T>(__curried: T, onChange?: (newValue: T) => any) => {
       const scope = getActiveScope();
       if (scope) {
         // console.log(">>> subscribe: ", __curried);
-        scope.observe(listeners);
+        observeInScope(scope, listeners);
       }
       // we allow to run outside of scope
       // in this case just returns a value;
@@ -87,7 +89,6 @@ const handlers = <T>(__curried: T, onChange?: (newValue: T) => any) => {
       }
       if (!cache.has(key)) {
         const result = createSubject(__curried[key], (newValue) => {
-          // console.log(">>> newValue:", newValue);
           if (reconciling) {
             return;
           }
@@ -98,7 +99,6 @@ const handlers = <T>(__curried: T, onChange?: (newValue: T) => any) => {
                 `trying to set non numeric key "${key}" of type "${typeof key}" to array object`
               );
             }
-            // is map the most performant way?
 
             const newArray = __curried.concat();
             newArray[index] = newValue;
@@ -141,12 +141,10 @@ declare global {
   }
 }
 
-type Primitive = string | number | boolean | symbol | null | undefined;
-
 const updateValue = <T>(
   prevValue: T,
   newValue: T,
-  listeners: Function[],
+  listeners: Listener[],
   onChange?: (newValue: T) => any
 ) => {
   if (prevValue === newValue) {
@@ -156,59 +154,20 @@ const updateValue = <T>(
   if (onChange) {
     onChange(prevValue);
   }
-  // console.log(">>> listeners1:", listeners);
-  batched = batched.concat(listeners);
+  // console.log(`>>> listeners1 (${newValue}): `, listeners);
+  batched = batched.concat(
+    listeners.filter(({ active }) => active).map(({ callback }) => callback)
+  );
   return newValue;
 };
 
 type Apply<T> =
   | ((target: T, thisArg: any, args: []) => T)
   | ((target: T, thisArg: any, args: [T]) => void);
-
-const primitiveHandlers = <T extends Primitive>(
-  __curried: T,
-  onChange?: (newValue: T) => any
-) => {
-  let listeners: Function[] = [];
-  return {
-    apply: (target, thisArg, args) => {
-      if (args.length > 0) {
-        // @ts-ignore
-        const newValue = args[0] as any;
-        if (newValue === UNMOUNT) {
-          onChange = undefined;
-        } else {
-          if (__curried === newValue) {
-            return;
-          }
-          __curried = updateValue(__curried, newValue, listeners, onChange);
-          // invokeCallbacksIfNoBatch();
-        }
-      } else {
-        const scope = getActiveScope();
-        if (scope) {
-          scope.observe(listeners);
-        }
-        // we allow to run outside of scope
-        // in this case just returns a value;
-      }
-      return __curried;
-    },
-  } as { apply: Apply<T> };
-};
-
 // this function is never invocked, but js
 // doesn't like invoking a function on a proxy
 // which target is not a function :P
 const applyMock = () => {};
-
-export const createPrimitiveSubject = <T extends Primitive>(
-  initialValue: T,
-  onChange?: (newValue: T) => any
-) => {
-  // @ts-ignore
-  return new Proxy(applyMock, primitiveHandlers(initialValue, onChange));
-};
 
 export const createSubject = <T>(
   initialValue: T,
