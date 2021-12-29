@@ -1,8 +1,10 @@
+import { getCurrentBatch } from "./subject";
+
 type ScopeCallback = (() => void) | (() => Function);
 
 interface IScope {
   // invoke: () => void;
-  dependencyDestroyers: Function[];
+  dependencyDestroyers: Subscription[];
   destroy?: Function;
   invoke: Function;
   callback: ScopeCallback;
@@ -13,56 +15,43 @@ interface StaticScope extends IScope {
   constructured: boolean;
 }
 
-export interface Listener {
+export class Listener {
   callback: Function;
   active: boolean;
+  constructor(callback) {
+    this.callback = callback;
+    this.active = true;
+  }
 }
 
 export interface Scope extends IScope {}
 
-let currentScope: Scope = undefined;
+let currentScope: IScope = undefined;
 
 export const getActiveScope = () => {
   return currentScope;
 };
 
-const subscribe = (listeners: Listener[], callback: Function) => {
-  // this scope already subscribed to this listener
-  let listener = listeners.find((e) => e.callback === callback);
-  if (!listener) {
-    listener = { callback, active: true };
-    // save index to not recompute every time
-    let index = listeners.push(listener);
-    return (destroy = false) => {
-      // however previous listeners in array might be removed!
-      if (listeners[index] !== listener) {
-        index = listeners.indexOf(listener);
-      }
-      if (destroy) {
-        listeners = listeners.splice(index, 1);
-      } else {
-        listeners[index].active = false;
-      }
-    };
-  } else {
-    listener.active = true;
-  }
-};
+export class Subscription {
+  listeners;
+  index;
+  scope: ReactiveScope;
+  active;
 
-// export const observeInScope = (scope: IScope, subscribe: (cb: Function) => Function) => {
-//   scope.observe(subscribe(scope.invoke));
-// };
+  constructor(listeners, scope) {
+    this.listeners = listeners;
+    this.scope = scope;
+    this.index = listeners.length;
+    this.active = true;
+  }
 
-export const destroyScope = (scope: IScope) => {
-  const { dependencyDestroyers, destroy } = scope;
-  scope.destroyed = true;
-  for (let i = 0; i < dependencyDestroyers.length; i++) {
-    dependencyDestroyers[i](true);
+  unsubscribe() {
+    if (this.listeners[this.index] !== this) {
+      this.index = this.listeners.indexOf(this);
+    }
+    this.listeners.splice( this.index, 1);
   }
-  if (destroy && typeof destroy === "function") {
-    destroy();
-  }
-};
+}
 
 export const muteScope = (callback: Function) => {
   const prevScope = currentScope;
@@ -71,67 +60,55 @@ export const muteScope = (callback: Function) => {
   currentScope = prevScope;
 };
 
-// export const runInStaticReactiveScope = (callback: ScopeCallback) => {
-//   const prevScope = currentScope;
-//   const newScope: Partial<StaticScope> = {
-//     dependencyDestroyers: [],
-//     observe: (listeners: Listener[]) => {
-//       if (!newScope.constructured) {
-//         newScope.dependencyDestroyers.push(
-//           subscribe(listeners, newScope.invoke)
-//         );
-//       }
-//     },
-//     invoke: () => {
-//       newScope.destroy = callback() as Function | undefined;
-//     },
-//     destroyed: false,
-//   };
-//   currentScope = newScope as Scope;
-//   newScope.destroy = callback() as Function | undefined;
-//   newScope.constructured = true;
-//   currentScope = prevScope;
-//   return () => destroyScope(newScope as Scope);
-// };
-
-// export const invokeScope = (scope: IScope, callback: Function) => {
-//   if (!scope.destroyed) {
-//     const prevScope = currentScope;
-//     currentScope = scope;
-//     for (let i = 0; i < scope.dependencyDestroyers.length; i++) {
-//       scope.dependencyDestroyers[i]();
-//     }
-//     scope.destroy = callback() as Function | undefined;
-//     currentScope = prevScope;
-//   }
-// };
-
-export const observeInScope = (scope: IScope, listeners: Listener[]) => {
-  const destroyer = subscribe(listeners, scope.invoke);
-  if (destroyer) {
-    scope.dependencyDestroyers.push(destroyer);
+export const observeInScope = (scope: IScope, listeners: Subscription[]) => {
+  // this scope already subscribed to this listener
+  let listener = listeners.find((e) => e.scope === scope);
+  if (!listener) {
+    const subscription = new Subscription(listeners, scope);
+    listeners.push(subscription);
+    scope.dependencyDestroyers.push(subscription);
+  } else {
+    listener.active = true;
   }
 };
 
-const invoke = (scope: IScope) => {
-  if (!scope.destroyed) {
-    const prevScope = currentScope;
-    currentScope = scope as Scope;
-    for (let i = 0; i < scope.dependencyDestroyers.length; i++) {
-      scope.dependencyDestroyers[i]();
-    }
-    scope.destroy = scope.callback() as Function | undefined;
-    currentScope = prevScope;
+class ReactiveScope implements IScope {
+  dependencyDestroyers: Subscription[] = [];
+  destroyed = false;
+  callback;
+  lastBatch = -1;
+  _destroy?: Function = undefined;
+  
+  constructor(callback) {
+    this.callback = callback;
+    this.invoke();
   }
+
+  destroy = () => {
+    this.destroyed = true;
+    for (let i = 0; i < this.dependencyDestroyers.length; i++) {
+      this.dependencyDestroyers[i].unsubscribe();
+    }
+    this.dependencyDestroyers = [];
+    if (this._destroy) {
+      this._destroy();
+    }
+  }
+
+  invoke() {
+    if (!this.destroyed) {
+      const prevScope = currentScope;
+      currentScope = this;
+      for (let i = 0; i < this.dependencyDestroyers.length; i++) {
+        this.dependencyDestroyers[i].active = false;
+      }
+      this._destroy = this.callback() as Function | undefined;
+      currentScope = prevScope;
+    }
+  }
+
 }
 
 export const runInReactiveScope = (callback: ScopeCallback) => {
-  const scope: IScope = {
-    dependencyDestroyers: [],
-    destroyed: false,
-    invoke: () => invoke(scope),
-    callback,
-  };
-  invoke(scope);
-  return () => destroyScope(scope);
+  return new ReactiveScope(callback).destroy;
 };

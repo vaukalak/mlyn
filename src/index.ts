@@ -1,6 +1,5 @@
 export {
   createSubject,
-  createPrimitiveSubject,
   batch,
   Subject,
   PrimitiveSubject,
@@ -13,8 +12,6 @@ export {
 } from "./selectors";
 export {
   runInReactiveScope,
-  runInStaticReactiveScope,
-  destroyScope,
   muteScope,
   Scope,
 } from "./scope";
