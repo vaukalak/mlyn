@@ -1,12 +1,25 @@
-import { getActiveScope, observeInScope, Subscription } from "./scope";
+import { getActiveScope, Scope, Subscription } from "./scope";
 
 const UNMOUNT = Object.freeze({});
 // let currentCycle = 0;
 let batches = 0;
 let batched: Subscription[] = [];
+
 let currentBatch = 0;
 
 export const getCurrentBatch = () => currentBatch;
+
+export const observeInScope = (scope: Scope, subject: SubjectImpl<any>) => {
+  // this scope already subscribed to this listener
+  let listener = subject.listeners.get(scope);
+  if (!listener) {
+    const subscription = new Subscription(subject, scope);
+    scope.subscriptions.push(subscription);
+    subject.listeners.set(scope, subscription);
+  } else {
+    listener.lastBatch = scope.lastBatch;
+  }
+};
 
 const invokeCallbacksIfNoBatch = () => {
   if (batches === 0) {
@@ -14,18 +27,18 @@ const invokeCallbacksIfNoBatch = () => {
     batched = [];
 
     const l = previousListeners.length;
+    currentBatch++;
     for (let i = 0; i < l; i++) {
       const listener = previousListeners[i];
-      // const listener = previousListeners[i];
-      // @ts-ignore
-      if (listener.active && listener.scope.lastBatch !== currentBatch) {
-        listener.active = false;
-        listener.scope.lastBatch = currentBatch;
-        // @ts-ignore
+      if (
+        // this subscription has been pinged in the last scope inv
+        listener.lastBatch === listener.scope.lastBatch &&
+        // this scope hasn't yet run in the scope
+        listener.scope.lastBatch !== currentBatch
+      ) {
         listener.scope.invoke();
       }
     }
-    currentBatch++;
   }
 };
 
@@ -51,10 +64,10 @@ declare global {
 let reconciling = false;
 
 const mock = () => {};
-class SubjectImpl<T> {
+export class SubjectImpl<T> {
   key?: string;
-  listeners: Subscription[] = [];
-  cache: { [key: string]: any };
+  listeners: Map<Scope, Subscription> = new Map();
+  children: { [key: string]: any };
   owner: SubjectImpl<any>;
   value: T;
 
@@ -63,7 +76,7 @@ class SubjectImpl<T> {
     this.value = intialValue;
     this.key = key;
     this.owner = owner;
-    this.cache = {};
+    this.children = undefined;
     // @ts-ignore
     return new Proxy(mock, this);
   }
@@ -84,20 +97,19 @@ class SubjectImpl<T> {
               .key}" to array object`
           );
         }
-        // is map the most performant way?
         const newOwnerValue = this.owner.value.concat();
         newOwnerValue[index] = newValue;
         this.owner.updateValue(newOwnerValue);
       } else {
-        this.owner.updateValue({
-          ...this.owner.value,
-          [this.key]: newValue,
-        });
+        this.owner.updateValue(
+          Object.assign({}, this.owner.value, { [this.key]: newValue })
+        );
       }
     }
     // ---------------------------
 
-    batched = batched.concat(this.listeners);
+    batched = batched.concat(Array.from(this.listeners.values()));
+    // batched = batched.concat(Array.from(this.listeners.values()));
     this.value = newValue;
   }
 
@@ -107,11 +119,11 @@ class SubjectImpl<T> {
       return this.value;
     }
     // some subjects do have child subscriptions and hence on cache.
-    if (!this.cache[key]) {
+    if (!(this.children ||= {})[key]) {
       const result = new SubjectImpl(this.value[key], key, this);
-      this.cache[key] = result;
+      this.children[key] = result;
     }
-    return this.cache[key];
+    return this.children[key];
   }
 
   apply(target, thisArg, args) {
@@ -128,18 +140,18 @@ class SubjectImpl<T> {
           // replace root value;
           this.updateValue(newValue);
 
-          if (typeof newValue === "object" && this.cache) {
+          if (typeof newValue === "object" && this.children) {
             reconciling = true;
-            for (const [childKey, childValue] of Object.entries(this.cache)) {
+            Object.keys(this.children).forEach((childKey) => {
               if (childKey in newValue) {
-                if (childValue.value !== newValue[childKey]) {
-                  childValue(newValue[childKey]);
+                if (this.children[childKey].value !== newValue[childKey]) {
+                  this.children[childKey](newValue[childKey]);
                 }
               } else {
-                childValue(UNMOUNT);
-                delete this.cache[childKey];
+                this.children[childKey](UNMOUNT);
+                delete this.children[childKey];
               }
-            }
+            });
             reconciling = false;
           }
         });
@@ -147,7 +159,7 @@ class SubjectImpl<T> {
     } else {
       const scope = getActiveScope();
       if (scope) {
-        observeInScope(scope, this.listeners);
+        observeInScope(scope, this);
       }
       // we allow to run outside of scope
       // in this case just returns a value;

@@ -58,6 +58,7 @@ describe("subject", () => {
       lastName: "Radzivil",
     });
     runInReactiveScope(() => {
+      // console.log(">>> subject.firstName(): ", subject.firstName());
       if (subject.firstName() === "Alzhbeta") {
         subject.lastName("Sapeha");
       }
