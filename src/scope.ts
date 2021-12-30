@@ -1,4 +1,3 @@
-import { Subject } from ".";
 import { getCurrentBatch, SubjectImpl } from "./subject";
 
 type ScopeCallback = (() => void) | (() => Function);
@@ -41,7 +40,7 @@ export const muteScope = (callback: Function) => {
   currentScope = prevScope;
 };
 
-class ReactiveScope implements Scope {
+export class ReactiveScope implements Scope {
   subscriptions: Subscription[] = [];
   destroyed = false;
   callback;
