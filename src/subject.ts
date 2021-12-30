@@ -1,44 +1,21 @@
-import { getActiveScope, Scope, Subscription } from "./scope";
+import { getActiveScope, Scope } from "./scope";
 
 const UNMOUNT = Object.freeze({});
 // let currentCycle = 0;
 let batches = 0;
-let batched: Subscription[] = [];
-
-let currentBatch = 0;
-
-export const getCurrentBatch = () => currentBatch;
+let batched: Set<Scope> = new Set();
 
 export const observeInScope = (scope: Scope, subject: SubjectImpl<any>) => {
   // this scope already subscribed to this listener
-  let listener = subject.listeners.get(scope);
-  if (!listener) {
-    const subscription = new Subscription(subject, scope);
-    scope.subscriptions.push(subscription);
-    subject.listeners.set(scope, subscription);
-  } else {
-    listener.lastBatch = scope.lastBatch;
-  }
+  subject.listeners.add(scope);
+  scope.subscriptions.add(subject);
 };
 
 const invokeCallbacksIfNoBatch = () => {
   if (batches === 0) {
     const previousListeners = batched;
-    batched = [];
-
-    const l = previousListeners.length;
-    currentBatch++;
-    for (let i = 0; i < l; i++) {
-      const listener = previousListeners[i];
-      if (
-        // this subscription has been pinged in the last scope inv
-        listener.lastBatch === listener.scope.lastBatch &&
-        // this scope hasn't yet run in the scope
-        listener.scope.lastBatch !== currentBatch
-      ) {
-        listener.scope.invoke();
-      }
-    }
+    batched = new Set();
+    previousListeners.forEach(s => s.invoke());
   }
 };
 
@@ -66,7 +43,7 @@ let reconciling = false;
 const mock = () => {};
 export class SubjectImpl<T> {
   key?: string;
-  listeners: Map<Scope, Subscription> = new Map();
+  listeners: Set<Scope> = new Set();
   children: { [key: string]: any };
   owner: SubjectImpl<any>;
   value: T;
@@ -108,7 +85,7 @@ export class SubjectImpl<T> {
     }
     // ---------------------------
 
-    batched = batched.concat(Array.from(this.listeners.values()));
+    this.listeners.forEach(l => batched.add(l));
     // batched = batched.concat(Array.from(this.listeners.values()));
     this.value = newValue;
   }

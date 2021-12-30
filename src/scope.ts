@@ -1,14 +1,13 @@
-import { getCurrentBatch, SubjectImpl } from "./subject";
+import { SubjectImpl } from "./subject";
 
 type ScopeCallback = (() => void) | (() => Function);
 
 export interface Scope {
   destroy?: Function;
   invoke: Function;
-  subscriptions: Subscription[];
+  subscriptions: Set<SubjectImpl<any>>;
   callback: ScopeCallback;
   destroyed: boolean;
-  lastBatch: number;
 }
 
 let currentScope: Scope = undefined;
@@ -16,22 +15,6 @@ let currentScope: Scope = undefined;
 export const getActiveScope = () => {
   return currentScope;
 };
-
-export class Subscription {
-  scope: Scope;
-  lastBatch: number;
-  subject: SubjectImpl<any>;
-  
-  constructor(subject, scope) {
-    this.subject = subject;
-    this.scope = scope;
-    this.lastBatch = getCurrentBatch();
-  }
-
-  unsubscribe() {
-    this.subject.listeners.delete(this.scope);
-  }
-}
 
 export const muteScope = (callback: Function) => {
   const prevScope = currentScope;
@@ -41,10 +24,9 @@ export const muteScope = (callback: Function) => {
 };
 
 export class ReactiveScope implements Scope {
-  subscriptions: Subscription[] = [];
+  subscriptions = new Set<SubjectImpl<any>>();
   destroyed = false;
   callback;
-  lastBatch = -1;
   _destroy?: Function = undefined;
   
   constructor(callback) {
@@ -54,10 +36,9 @@ export class ReactiveScope implements Scope {
 
   destroy() {
     this.destroyed = true;
-    for (let i = 0; i < this.subscriptions.length; i++) {
-      this.subscriptions[i].unsubscribe();
-    }
-    this.subscriptions = [];
+    
+    this.subscriptions.forEach((sub) => sub.listeners.delete(this));
+    this.subscriptions = new Set();
     if (this._destroy) {
       this._destroy();
     }
@@ -67,7 +48,8 @@ export class ReactiveScope implements Scope {
     if (!this.destroyed) {
       const prevScope = currentScope;
       currentScope = this;
-      this.lastBatch =  getCurrentBatch();
+      this.subscriptions.forEach((sub) => sub.listeners.delete(this));
+      this.subscriptions = new Set();
       if (typeof this.callback === "function") {
         this._destroy = this.callback() as Function | undefined;
       } else {
