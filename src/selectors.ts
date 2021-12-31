@@ -1,25 +1,25 @@
 import { createSubject, Subject } from "./subject";
-import { runInReactiveScope, muteScope } from "./scope";
+import { runInReactiveScope, muteScope, Scope } from "./scope";
 
 type Syncronizer<T> = [(s: Subject<T>) => void, () => void];
 
 export const createSyncronizer = <T extends any>(
   outSubject: Subject<T>
 ): Syncronizer<T> => {
-  let destroyInScope: () => void;
-  let destroyOutScope: () => void;
+  let inScope: Scope;
+  let outScope: Scope;
   const NOT_INITIALIZED: any = Object.freeze({});
   return [
     (inSubject: Subject<T>) => {
-      if (destroyOutScope) {
-        destroyOutScope();
+      if (outScope) {
+        outScope.destroy();
       }
-      if (destroyInScope) {
-        destroyInScope();
+      if (inScope) {
+        inScope.destroy();
       }
       let lastInValue: T = NOT_INITIALIZED;
       let lastOutValue: T = NOT_INITIALIZED;
-      destroyInScope = runInReactiveScope(() => {
+      inScope = runInReactiveScope(() => {
         const inValue = inSubject();
         if (lastInValue !== inValue) {
           lastInValue = inValue;
@@ -29,7 +29,7 @@ export const createSyncronizer = <T extends any>(
         }
       });
 
-      destroyOutScope = runInReactiveScope(() => {
+      outScope = runInReactiveScope(() => {
         const outValue = outSubject();
         if (lastOutValue !== outValue) {
           lastOutValue = outValue;
@@ -40,8 +40,8 @@ export const createSyncronizer = <T extends any>(
       });
     },
     () => {
-      destroyInScope();
-      destroyOutScope();
+      inScope.destroy();
+      outScope.destroy();
     },
   ];
 };
@@ -81,7 +81,7 @@ export const projectSubject = <T>(
   const [syncronizer, destroySyncronizerScope] =
     createSyncronizer(resultingSubject);
   let lastSelectedSubject;
-  const destroyProjectionScope = runInReactiveScope(() => {
+  const projectionScope = runInReactiveScope(() => {
     const newValue = projection();
     if (lastSelectedSubject !== newValue) {
       lastSelectedSubject = newValue;
@@ -92,15 +92,16 @@ export const projectSubject = <T>(
     resultingSubject,
     () => {
       destroySyncronizerScope();
-      destroyProjectionScope();
+      projectionScope.destroy();
     },
   ];
 };
 
-export const projectArray = <T extends any>(
+export const projectArray = <T extends any, R = T>(
   array$: Subject<T[]>,
   projection: (array: Subject<T[]>) => T[],
-  getKey: (item: T) => string
+  getKey: (item: T) => string,
+  bindBack?: (item: R, keyToIndex: Record<string, number>) => void,
 ) => {
   type CacheEntry = {
     item$: Subject<T>;
@@ -116,7 +117,7 @@ export const projectArray = <T extends any>(
     keyToOriginalIndex = newKeyToOriginalIndex;
     return result;
   };
-  const filtered$ = createSubject<T[]>([]);
+  const projected$ = createSubject<T[]>([]);
 
   let cache: { [key: string]: CacheEntry } = {};
   let blockPropagation = false;
@@ -135,7 +136,7 @@ export const projectArray = <T extends any>(
     }
     muteScope(() => {
       blockPropagation = true;
-      filtered$(entries);
+      projected$(entries);
       const untouched: { [key: string]: CacheEntry } = { ...cache };
       entries.forEach((e, i) => {
         const key = getKey(e);
@@ -144,7 +145,7 @@ export const projectArray = <T extends any>(
           if (cache[key]) {
             cache[key].destroyScope();
           }
-          const item$ = filtered$[i];
+          const item$ = projected$[i];
           const scope = runInReactiveScope(() => {
             const item = item$();
             if (blockPropagation) {
@@ -158,7 +159,7 @@ export const projectArray = <T extends any>(
           cache[key] = {
             item$,
             index: i,
-            destroyScope: scope,
+            destroyScope: scope.destroy,
           };
         }
       });
@@ -169,7 +170,7 @@ export const projectArray = <T extends any>(
       });
     });
   });
-  return [filtered$, projectionScope];
+  return [projected$, projectionScope] as const;
 };
 
 // todo: cover with tests

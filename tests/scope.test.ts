@@ -10,13 +10,13 @@ describe("scope", () => {
         lastName: "Smith",
       },
     });
-    const destroyScope = runInReactiveScope(() => {
+    const scope = runInReactiveScope(() => {
       logs.push(`user name is ${subject.user.firstName()}`);
     });
     subject.user.firstName("Abraham");
     subject.user({ ...subject.user(), firstName: "Albert" });
     subject.user({ ...subject.user(), lastName: "Lincoln" });
-    destroyScope();
+    scope.destroy();
     subject.user.firstName("Lion");
     expect(logs).toEqual([
       `user name is John`,
@@ -32,11 +32,7 @@ describe("scope", () => {
       b(a.foo() + 1);
     });
     expect(b()).toEqual(2);
-    batch(() => {
-      batch(() => {
-        a({ foo: 2, bar: 0 });
-      })
-    });
+    a({ foo: 2, bar: 0 });
     expect(b()).toEqual(3);
   });
 
@@ -84,7 +80,7 @@ describe("scope", () => {
 
   it("should invoke unsubscribe", () => {
     let invoked = false;
-    runInReactiveScope(() => () => invoked = true)();
+    runInReactiveScope(() => () => invoked = true).destroy();
     expect(invoked).toEqual(true);
   });
 

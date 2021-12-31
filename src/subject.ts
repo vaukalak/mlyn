@@ -1,166 +1,28 @@
-import { getActiveScope, observeInScope } from "./scope";
-
-interface Batch {
-  listeners: Set<Function>;
-}
+import { getActiveScope, Scope } from "./scope";
 
 const UNMOUNT = Object.freeze({});
-const batches: Batch[] = [];
+let batches = 0;
+let batched: Set<Scope> = new Set();
 
-type AnyFunction = (...args: any[]) => any;
-
-type Curried<T> = {
-  (): void;
-  __curried: T;
+export const observeInScope = (scope: Scope, subject: SubjectImpl<any>) => {
+  // this scope already subscribed to this listener
+  subject.listeners.add(scope);
+  scope.subscriptions.add(subject);
 };
 
-export const batch = (cb: AnyFunction) => {
-  const currentBatch: Batch = { listeners: new Set() };
-  batches.push(currentBatch);
-  cb();
-  batches.pop();
-  if (batches.length === 0) {
-    const previousListeners = new Set([...currentBatch.listeners]);
-    for (const listener of previousListeners) {
-      listener();
-    }
-  } else {
-    const parentBatch = batches[batches.length - 1];
-    parentBatch.listeners = new Set([
-      ...parentBatch.listeners,
-      ...currentBatch.listeners,
-    ]);
+const invokeCallbacksIfNoBatch = () => {
+  if (batches === 0) {
+    const previousListeners = batched;
+    batched = new Set();
+    previousListeners.forEach(s => s.invoke());
   }
 };
 
-const handlers = <T>(onChange?: (newValue: T) => any) => {
-  const cache = new Map<any, any>();
-  const listeners = new Set<Function>();
-  let reconciling = false;
-  let onChangeRef = onChange;
-  const subscribe = (listener) => {
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
-    };
-  };
-  const dispatch = () => {
-    for (const listener of listeners.values()) {
-      listener();
-    }
-  };
-  const updateValue = (target: Curried<T>, newValue: T) => {
-    if (target.__curried === newValue) {
-      return;
-    }
-    target.__curried = newValue;
-    if (onChangeRef) {
-      onChangeRef(target.__curried);
-    }
-    // will this ever be true ?
-    if (batches.length === 0) {
-      dispatch();
-    } else {
-      const currentBatch = batches[batches.length - 1];
-      currentBatch.listeners = new Set([
-        ...currentBatch.listeners,
-        ...listeners,
-      ]);
-    }
-  };
-  const proxifyKeyCached = (target, key) => {
-    if (!cache.has(key)) {
-      const result = createSubject(target.__curried[key], (newValue) => {
-        if (reconciling) {
-          return;
-        }
-        if (Array.isArray(target.__curried)) {
-          const index = parseInt(key, 10);
-          if (isNaN(index)) {
-            throw new Error(
-              `trying to set non numeric key "${key}" of type "${typeof key}" to array object`
-            );
-          }
-          // is map the most performant way?
-          updateValue(
-            target,
-            target.__curried.map((e, i) => {
-              if (i === index) {
-                return newValue;
-              }
-              return e;
-            })
-          );
-        } else {
-          updateValue(target, {
-            ...target.__curried,
-            [key]: newValue,
-          });
-        }
-      });
-      cache.set(key, result);
-    }
-    return cache.get(key);
-  };
-  type Apply = (
-    target: Curried<T>,
-    thisArg: any,
-    args: []
-  ) => T | ((target: Curried<T>, thisArg: any, args: [T]) => void);
-  const apply: Apply = (target, thisArg, args) => {
-    if (args.length > 0) {
-      // @ts-ignore
-      const newValue = args[0] as any;
-      if (newValue === UNMOUNT) {
-        onChangeRef = undefined;
-      } else {
-        batch(() => {
-          // replace root value;
-          updateValue(target, newValue);
-          reconciling = true;
-          for (const [childKey, childValue] of cache.entries()) {
-            if (typeof newValue === "object" && childKey in newValue) {
-              if (childValue.__curried !== newValue[childKey]) {
-                childValue(newValue[childKey]);
-              }
-            } else {
-              childValue(UNMOUNT);
-              cache.delete(childKey);
-            }
-          }
-          reconciling = false;
-        });
-      }
-    } else {
-      const scope = getActiveScope();
-      if (scope) {
-        observeInScope(scope, subscribe);
-      }
-      // we allow to run outside of scope
-      // in this case just returns a value;
-    }
-    return target.__curried;
-  };
-  return {
-    apply,
-    get: <K extends Extract<keyof T, string>>(
-      target: Curried<T>,
-      key: K
-    ): T => {
-      if (key === "__curried") {
-        return target.__curried;
-      }
-      return proxifyKeyCached(target, key);
-    },
-    set: <K extends Extract<keyof T, string>>(
-      target: Curried<T>,
-      key: K,
-      value: T[K]
-    ) => {
-      proxifyKeyCached(target, key)(value);
-      return true;
-    },
-  };
+export const batch = (cb: Function) => {
+  batches++;
+  cb();
+  batches--;
+  invokeCallbacksIfNoBatch();
 };
 
 export type PrimitiveSubject<T> = (() => T) & ((newValue: T) => void);
@@ -171,18 +33,121 @@ export type Subject<T> = {
 
 declare global {
   interface ProxyConstructor {
-    new <T>(target: Curried<T>, handler: ProxyHandler<Curried<T>>): Subject<T>;
+    new <T>(target: Function, handler: ProxyHandler<Function>): Subject<T>;
+  }
+}
+
+let reconciling = false;
+
+// this callback is never invoked,
+// but to invoke proxy object, it target
+// need to be a function
+const mock = () => {};
+export class SubjectImpl<T> {
+  key?: string;
+  listeners: Set<Scope> = new Set();
+  children: { [key: string]: any };
+  owner: SubjectImpl<any>;
+  value: T;
+
+  constructor(intialValue, key?: string, owner?: SubjectImpl<any>) {
+    // super();
+    this.value = intialValue;
+    this.key = key;
+    this.owner = owner;
+    this.children = undefined;
+    // @ts-ignore
+    return new Proxy(mock, this);
+  }
+
+  updateValue(newValue) {
+    if (this.value === newValue) {
+      return;
+    }
+    this.value = newValue;
+
+    if (this.owner && !reconciling) {
+      if (Array.isArray(this.owner.value)) {
+        const index = parseInt(this.key, 10);
+        if (isNaN(index)) {
+          throw new Error(
+            `trying to set non numeric key "${this.key}" of type "${typeof this
+              .key}" to array object`
+          );
+        }
+        const newOwnerValue = this.owner.value.concat();
+        newOwnerValue[index] = newValue;
+        this.owner.updateValue(newOwnerValue);
+      } else {
+        this.owner.updateValue(
+          Object.assign({}, this.owner.value, { [this.key]: newValue })
+        );
+      }
+    }
+
+    this.listeners.forEach(l => batched.add(l));
+    this.value = newValue;
+  }
+
+  get(target, key) {
+    if (key === "__value" || key === "__curried") {
+      return this.value;
+    }
+    // some subjects do have child subscriptions and hence on cache.
+    if (!(this.children ||= {})[key]) {
+      const result = new SubjectImpl(this.value[key], key, this);
+      this.children[key] = result;
+    }
+    return this.children[key];
+  }
+
+  apply(target, thisArg, args) {
+    if (args.length > 0) {
+      // @ts-ignore
+      const newValue = args[0] as any;
+      if (newValue === UNMOUNT) {
+        this.owner = undefined;
+      } else {
+        if (this.value === newValue) {
+          return;
+        }
+        batch(() => {
+          // replace root value;
+          this.updateValue(newValue);
+
+          if (typeof newValue === "object" && this.children) {
+            reconciling = true;
+            Object.keys(this.children).forEach((childKey) => {
+              if (childKey in newValue) {
+                if (this.children[childKey].value !== newValue[childKey]) {
+                  this.children[childKey](newValue[childKey]);
+                }
+              } else {
+                this.children[childKey](UNMOUNT);
+                delete this.children[childKey];
+              }
+            });
+            reconciling = false;
+          }
+        });
+      }
+    } else {
+      const scope = getActiveScope();
+      if (scope) {
+        observeInScope(scope, this);
+      }
+      // we allow to run outside of scope
+      // in this case just returns a value;
+    }
+    return this.value;
   }
 }
 
 export const createSubject = <T>(
-  target: T,
-  onChange?: (newValue: T) => any
-) => {
-  // this function is never invocked, but js
-  // doesn't like invoking a function on a proxy
-  // which target is not a function :P
-  const f: Curried<T> = () => f.__curried;
-  f.__curried = target;
-  return new Proxy(f, handlers(onChange));
+  initialValue: T,
+  key?: string,
+  owner?: Subject<any>
+): Subject<T> => {
+  // @ts-ignore
+  return new SubjectImpl(initialValue, key, owner) as Subject<T>;
 };
