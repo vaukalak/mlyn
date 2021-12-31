@@ -64,7 +64,6 @@ export class SubjectImpl<T> {
     }
     this.value = newValue;
 
-    // ---------------------------
     if (this.owner && !reconciling) {
       if (Array.isArray(this.owner.value)) {
         const index = parseInt(this.key, 10);
@@ -83,15 +82,12 @@ export class SubjectImpl<T> {
         );
       }
     }
-    // ---------------------------
 
     this.listeners.forEach(l => batched.add(l));
-    // batched = batched.concat(Array.from(this.listeners.values()));
     this.value = newValue;
   }
 
   get(target, key) {
-    // return undefined;
     if (key === "__value" || key === "__curried") {
       return this.value;
     }

@@ -58,7 +58,6 @@ describe("subject", () => {
       lastName: "Radzivil",
     });
     runInReactiveScope(() => {
-      // console.log(">>> subject.firstName(): ", subject.firstName());
       if (subject.firstName() === "Alzhbeta") {
         subject.lastName("Sapeha");
       }
@@ -213,7 +212,6 @@ describe("batch updated", () => {
     });
     const logs = [];
     runInReactiveScope(() => {
-      // console.log(">>> showFull():", showFull());
       if (showFull()) {
         logs.push(`${firstName()} ${lastName()}`);
       } else {

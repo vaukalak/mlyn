@@ -32,10 +32,6 @@ describe("scope", () => {
       b(a.foo() + 1);
     });
     expect(b()).toEqual(2);
-    // batch(() => {
-    //   batch(() => {
-    //   })
-    // });
     a({ foo: 2, bar: 0 });
     expect(b()).toEqual(3);
   });
