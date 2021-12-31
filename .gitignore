@@ -8,5 +8,6 @@ yarn-error.log
 
 node_modules/
 
+benchmark/
 lib/
 types/
