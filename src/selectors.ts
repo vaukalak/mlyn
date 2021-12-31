@@ -106,7 +106,7 @@ export const projectArray = <T extends any, R = T>(
   type CacheEntry = {
     item$: Subject<T>;
     index: number;
-    destroyScope: () => void;
+    scope: Scope;
   };
   let block = false;
   let keyToOriginalIndex: { [key: string]: number } = {};
@@ -143,7 +143,7 @@ export const projectArray = <T extends any, R = T>(
         delete untouched[key];
         if (!cache[key] || cache[key].index !== i) {
           if (cache[key]) {
-            cache[key].destroyScope();
+            cache[key].scope.destroy();
           }
           const item$ = projected$[i];
           const scope = runInReactiveScope(() => {
@@ -159,13 +159,13 @@ export const projectArray = <T extends any, R = T>(
           cache[key] = {
             item$,
             index: i,
-            destroyScope: scope.destroy,
+            scope,
           };
         }
       });
       blockPropagation = false;
       Object.keys(untouched).forEach((key) => {
-        cache[key].destroyScope();
+        cache[key].scope.destroy();
         delete cache[key];
       });
     });
