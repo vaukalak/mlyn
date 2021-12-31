@@ -170,7 +170,7 @@ export const projectArray = <T extends any, R = T>(
       });
     });
   });
-  return [projected$, projectionScope];
+  return [projected$, projectionScope] as const;
 };
 
 // todo: cover with tests
