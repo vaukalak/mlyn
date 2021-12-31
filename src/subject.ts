@@ -1,7 +1,6 @@
 import { getActiveScope, Scope } from "./scope";
 
 const UNMOUNT = Object.freeze({});
-// let currentCycle = 0;
 let batches = 0;
 let batched: Set<Scope> = new Set();
 
@@ -40,6 +39,9 @@ declare global {
 
 let reconciling = false;
 
+// this callback is never invoked,
+// but to invoke proxy object, it target
+// need to be a function
 const mock = () => {};
 export class SubjectImpl<T> {
   key?: string;
