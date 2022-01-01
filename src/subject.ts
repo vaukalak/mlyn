@@ -119,7 +119,7 @@ export class SubjectImpl<T> {
             reconciling = true;
             Object.keys(this.children).forEach((childKey) => {
               if (childKey in newValue) {
-                if (this.children[childKey].value !== newValue[childKey]) {
+                if (this.children[childKey].__value !== newValue[childKey]) {
                   this.children[childKey](newValue[childKey]);
                 }
               } else {
