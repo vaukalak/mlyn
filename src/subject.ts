@@ -1,3 +1,4 @@
+import { isNullified } from "./nullified";
 import { getActiveScope, Scope } from "./scope";
 
 const UNMOUNT = Object.freeze({});
@@ -14,7 +15,7 @@ const invokeCallbacksIfNoBatch = () => {
   if (batches === 0) {
     const previousListeners = batched;
     batched = new Set();
-    previousListeners.forEach(s => s.invoke());
+    previousListeners.forEach((s) => s.invoke());
   }
 };
 
@@ -85,7 +86,7 @@ export class SubjectImpl<T> {
       }
     }
 
-    this.listeners.forEach(l => batched.add(l));
+    this.listeners.forEach((l) => batched.add(l));
     this.value = newValue;
   }
 
@@ -115,7 +116,7 @@ export class SubjectImpl<T> {
           // replace root value;
           this.updateValue(newValue);
 
-          if (typeof newValue === "object" && this.children) {
+          if ((typeof newValue === "object" || isNullified(newValue)) && this.children) {
             reconciling = true;
             Object.keys(this.children).forEach((childKey) => {
               if (childKey in newValue) {
@@ -139,7 +140,8 @@ export class SubjectImpl<T> {
       // we allow to run outside of scope
       // in this case just returns a value;
     }
-    return this.value;
+    // @ts-ignore
+    return isNullified(this.value) ? this.value() : this.value;
   }
 }
 
