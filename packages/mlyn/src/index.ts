@@ -7,3 +7,4 @@ export {
 } from "./selectors";
 export { runInReactiveScope, muteScope, Scope } from "./scope";
 export { createBlock } from "./utils";
+export { nullified } from "./nullified";

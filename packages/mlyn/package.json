@@ -1,0 +1,34 @@
+{
+  "name": "mlyn",
+  "version": "0.5.3",
+  "main": "lib/index.js",
+  "private": true,
+  "types": "types/index.d.ts",
+  "descrition": "reactive immutable state",
+  "author": "vaukalak",
+  "repository": "https://github.com/vaukalak/mlyn",
+  "files": [
+    "lib",
+    "types"
+  ],
+  "scripts": {
+    "ts": "npx tsc --rootDir src --declarationDir types --downlevelIteration --declaration --emitDeclarationOnly",
+    "test": "npx jest",
+    "clean": "rm -rf lib && rm -rf types",
+    "build": "npx babel src --extensions '.ts' --out-dir lib && yarn ts",
+    "prepublish": "yarn clean && yarn build"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.14.8",
+    "@babel/core": "^7.15.0",
+    "@babel/node": "^7.14.9",
+    "@babel/preset-env": "^7.15.0",
+    "@babel/preset-typescript": "^7.15.0",
+    "@types/jest": "^27.0.1",
+    "jest": "^27.0.6",
+    "typescript": "^4.3.5"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}
