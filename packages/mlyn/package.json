@@ -2,7 +2,6 @@
   "name": "mlyn",
   "version": "0.5.3",
   "main": "lib/index.js",
-  "private": true,
   "types": "types/index.d.ts",
   "descrition": "reactive immutable state",
   "author": "vaukalak",

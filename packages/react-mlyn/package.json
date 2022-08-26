@@ -2,7 +2,6 @@
   "name": "react-mlyn",
   "version": "0.5.11",
   "description": "React bindings to mlyn",
-  "private": true,
   "main": "lib/index.js",
   "types": "types/index.js",
   "repository": "https://github.com/vaukalak/react-mlyn",
