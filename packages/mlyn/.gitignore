@@ -1,0 +1,13 @@
+
+# Yarn
+.yarn-integrity
+yarn-error.log
+.yarn/cache
+
+.vscode/
+
+node_modules/
+
+benchmark/
+lib/
+types/
