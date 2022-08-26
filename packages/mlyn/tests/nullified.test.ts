@@ -1,4 +1,4 @@
-import { nullified } from "../src/nullified";
+import { nullified, nullifiedSafe } from "../src/nullified";
 import { createSubject } from "../src/subject";
 
 describe("nullify", () => {
@@ -19,5 +19,14 @@ describe("nullify", () => {
     subj$(n);
     expect(subj$()).toEqual(1);
     expect(subj$.foo()).toBe(1);
+  });
+
+  it("if composed value is nullified", () => {
+    const n = nullified(1);
+    const subj$ = createSubject(n);
+    const wrapped = nullifiedSafe(() => `${subj$.a()} _ ${subj$.b()}`);
+    expect(wrapped()).toBe(1);
+    subj$({ a: "a", b: "b"});
+    expect(wrapped()).toBe(`a _ b`);
   });
 });
