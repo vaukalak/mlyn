@@ -1,6 +1,6 @@
 {
   "name": "mlyn",
-  "version": "0.5.12",
+  "version": "0.5.13",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "descrition": "reactive immutable state",

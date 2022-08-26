@@ -1,6 +1,6 @@
 {
   "name": "mlyn-history",
-  "version": "0.5.12",
+  "version": "0.5.13",
   "description": "simple history management from mlyn",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
@@ -29,7 +29,7 @@
     "@babel/preset-typescript": "^7.16.7",
     "@types/jest": "^27.4.0",
     "jest": "^27.4.7",
-    "mlyn": "^0.5.12",
+    "mlyn": "^0.5.13",
     "typescript": "^4.5.4"
   }
 }

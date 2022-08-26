@@ -1,6 +1,6 @@
 {
   "name": "react-mlyn",
-  "version": "0.5.12",
+  "version": "0.5.13",
   "description": "React bindings to mlyn",
   "main": "lib/index.js",
   "types": "types/index.js",
@@ -36,7 +36,7 @@
     "@types/react": "^17.0.19",
     "babel-polyfill": "^6.26.0",
     "jest": "^27.0.6",
-    "mlyn": "^0.5.12",
+    "mlyn": "^0.5.13",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "regenerator-runtime": "^0.13.9",
