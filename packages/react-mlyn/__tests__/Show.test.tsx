@@ -18,14 +18,14 @@ test("hide / show entries", async () => {
   expect(mapChildren(container)).toEqual(["SHOW"]);
 });
 
-test("show falldown", async () => {
+test("show fallback", async () => {
   const show$ = createSubject(false);
   const { container } = render(
-    <Show when={show$} falldown={() => <div>FALLDOWN</div>}>
+    <Show when={show$} fallback={() => <div>FALLBACK</div>}>
       {() => <div>SHOW</div>}
     </Show>
   );
-  expect(mapChildren(container)).toEqual(["FALLDOWN"]);
+  expect(mapChildren(container)).toEqual(["FALLBACK"]);
   act(() => {
     show$(true);
   });
@@ -33,5 +33,5 @@ test("show falldown", async () => {
   act(() => {
     show$(false);
   });
-  expect(mapChildren(container)).toEqual(["FALLDOWN"]);
+  expect(mapChildren(container)).toEqual(["FALLBACK"]);
 });

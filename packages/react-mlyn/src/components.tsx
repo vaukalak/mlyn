@@ -9,12 +9,12 @@ import { createSubject, runInReactiveScope, Subject } from "mlyn";
 interface ShowProps {
   when: () => any;
   children: () => React.ReactElement;
-  falldown?: () => React.ReactElement;
+  fallback?: () => React.ReactElement;
 }
 
-export const Show = seal(({ when, children, falldown }: ShowProps) => {
+export const Show = seal(({ when, children, fallback }: ShowProps) => {
   const visible = useCompute(() => Boolean(when()));
-  return visible ? children() : falldown ? falldown() : null;
+  return visible ? children() : fallback ? fallback() : null;
 });
 
 interface Props<T> {
