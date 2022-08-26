@@ -1,6 +1,6 @@
 {
   "name": "todo-mvc",
-  "version": "0.1.0",
+  "version": "0.5.12",
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.3.0",
@@ -9,11 +9,11 @@
     "@types/node": "^16.11.56",
     "@types/react": "^18.0.17",
     "@types/react-dom": "^18.0.6",
-    "mlyn": "^0.5.3",
-    "mlyn-history": "^0.0.3",
+    "mlyn": "^0.5.12",
+    "mlyn-history": "^0.5.12",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-mlyn": "^0.5.11",
+    "react-mlyn": "^0.5.12",
     "react-scripts": "5.0.1",
     "typescript": "^4.7.4",
     "web-vitals": "^2.1.4"
