@@ -9,11 +9,12 @@ import { createSubject, runInReactiveScope, Subject } from "mlyn";
 interface ShowProps {
   when: () => any;
   children: () => React.ReactElement;
+  falldown?: () => React.ReactElement;
 }
 
-export const Show = seal(({ when, children }: ShowProps) => {
+export const Show = seal(({ when, children, falldown }: ShowProps) => {
   const visible = useCompute(() => Boolean(when()));
-  return visible && children();
+  return visible ? children() : falldown ? falldown() : null;
 });
 
 interface Props<T> {
@@ -86,7 +87,7 @@ export const For = seal(<T extends any>(props: Props<T>) => {
           end--, changesEnd--
         ) {}
         suffix = renderItems.slice(end + 1);
-        
+
         const midStart = changesStart + 1;
         const mid = renderItems.slice(midStart, -suffix.length);
         const newMidEnd = newLen - suffix.length;
@@ -192,7 +193,6 @@ export const For = seal(<T extends any>(props: Props<T>) => {
             } else {
               renderItems[i].subj$(newItems[i]);
             }
-            
           }
         }
       }
