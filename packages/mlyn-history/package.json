@@ -1,6 +1,6 @@
 {
   "name": "mlyn-history",
-  "version": "0.5.16",
+  "version": "0.5.17",
   "description": "simple history management from mlyn",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
