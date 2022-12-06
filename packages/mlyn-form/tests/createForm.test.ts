@@ -1,4 +1,3 @@
-import * as yup from "yup";
 import { createForm } from "../src/createForm";
 
 describe("createForm", () => {

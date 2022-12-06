@@ -21,7 +21,11 @@
     "url": "git+https://github.com/vaukalak/mlyn.git"
   },
   "scripts": {
-    "test": "npx jest"
+    "ts": "npx tsc",
+    "test": "npx jest",
+    "clean": "rm -rf lib && rm -rf types",
+    "build": "npx babel src --extensions '.ts' --out-dir lib && yarn ts",
+    "prepublish": "yarn clean && yarn build"
   },
   "bugs": {
     "url": "https://github.com/vaukalak/mlyn/issues"
@@ -36,6 +40,7 @@
     "@babel/preset-env": "^7.20.2",
     "@babel/preset-typescript": "^7.18.6",
     "@types/jest": "^29.2.3",
+    "@types/node": "^18.11.11",
     "jest": "^29.3.1",
     "typescript": "^4.9.3",
     "yup": "^0.32.11"
