@@ -11417,6 +11417,8 @@ mkdirp@~0.5.1:
 
 mlyn@0.5.15:
   version "0.5.13"
+  resolved "https://registry.yarnpkg.com/mlyn/-/mlyn-0.5.13.tgz#2eab8e8b287eb50e80d77c3a1d258749210a55cb"
+  integrity sha512-+54krorWlG5UPfAZn+iYE66kSZzhWZS28SuE3+QUqrnKjA/2IGrsSpR7l+l5Rd1usdqe9OOYG2LmbN9ZsrnVlQ==
 
 modify-values@^1.0.0:
   version "1.0.1"
