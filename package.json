@@ -7,11 +7,12 @@
   ],
   "dependencies": {
     "mlyn": "*",
+    "mlyn-history": "*",
     "react-mlyn": "*",
-    "mlyn-history": "*"
+    "react-form": "*"
   },
   "devDependencies": {
-    "lerna": "5.1.6",
+    "lerna": "^5.1.6",
     "nx": "^14.5.10"
   }
 }
