@@ -1,0 +1,1 @@
+export const IS_SUBJECT = Symbol("IS_SUBJECT");

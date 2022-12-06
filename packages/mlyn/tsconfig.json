@@ -4,11 +4,13 @@
     "noImplicitAny": false,
     "noEmitOnError": true,
     "removeComments": false,
+    "declaration": true,
+    "declarationDir": "./types",
+    "emitDeclarationOnly": true,
     "sourceMap": true,
     "target": "es5",
-    "outDir": "dist"
+    "outDir": "dist",
+    "rootDir": "src"
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }

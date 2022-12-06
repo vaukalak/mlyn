@@ -11,7 +11,7 @@
     "types"
   ],
   "scripts": {
-    "ts": "npx tsc --rootDir src --declarationDir types --downlevelIteration --declaration --emitDeclarationOnly",
+    "ts": "npx tsc",
     "test": "npx jest",
     "clean": "rm -rf lib && rm -rf types",
     "build": "npx babel src --extensions '.ts' --out-dir lib && yarn ts",

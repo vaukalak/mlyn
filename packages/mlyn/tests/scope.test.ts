@@ -3,7 +3,7 @@ import { createSubject, batch } from "../src/subject";
 
 describe("scope", () => {
   it("should run in scope", () => {
-    const logs = [];
+    const logs: string[] = [];
     const subject = createSubject({
       user: {
         firstName: "John",

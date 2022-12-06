@@ -118,8 +118,18 @@ describe("subject", () => {
     expect(subject()).toEqual({ foo: 1, bar: 2 });
   });
 
+  it("subject can hold functions", () => {
+    const foo = jest.fn();
+    const subject = createSubject({ foo });
+    expect(foo).not.toBeCalled();
+    subject.foo();
+    expect(foo).toBeCalled();
+  });
+
   it("deleted node, should not affect parent, node", () => {
-    const parent = createSubject<{ child?: any, a?: number }>({ child: { value: 1 }});
+    const parent = createSubject<{ child?: any; a?: number }>({
+      child: { value: 1 },
+    });
     const { child } = parent;
     parent({ a: 1 }); // `child` will be unmounted
     child.value(2);
@@ -128,21 +138,31 @@ describe("subject", () => {
 });
 
 describe("array updates", () => {
-  it ("should properly update indexes", () => {
+  it("should properly update indexes", () => {
     const subject = createSubject({ tags: ["a", "b", "c"] });
     subject.tags[0]("d");
     expect(subject.tags()).toEqual(["d", "b", "c"]);
   });
 
-  it ("should properly update indexes on nested values", () => {
-    const subject = createSubject({ tags: [{ name: "a" }, { name: "b" }, { name: "c" }] });
+  it("should properly update indexes on nested values", () => {
+    const subject = createSubject({
+      tags: [{ name: "a" }, { name: "b" }, { name: "c" }],
+    });
     subject.tags[0].name("d");
-    expect(subject.tags()).toEqual([{ name: "d" }, { name: "b" }, { name: "c" }]);
-    subject.tags[0]({ name: "e" })
-    expect(subject.tags()).toEqual([{ name: "e" }, { name: "b" }, { name: "c" }]);
+    expect(subject.tags()).toEqual([
+      { name: "d" },
+      { name: "b" },
+      { name: "c" },
+    ]);
+    subject.tags[0]({ name: "e" });
+    expect(subject.tags()).toEqual([
+      { name: "e" },
+      { name: "b" },
+      { name: "c" },
+    ]);
   });
 
-  it ("should properly add / delete values", () => {
+  it("should properly add / delete values", () => {
     const subject = createSubject({ tags: ["a", "b", "c"] });
     subject.tags([...subject.tags(), "d"]);
     expect(subject.tags()).toEqual(["a", "b", "c", "d"]);
@@ -151,7 +171,7 @@ describe("array updates", () => {
     expect(subject.tags()).toEqual(["b", "c", "d"]);
   });
 
-  it ("manage deleted key", () => {
+  it("manage deleted key", () => {
     const subject = createSubject({ tags: ["a", "b", "c"] });
     let log = "";
     runInReactiveScope(() => {
@@ -168,16 +188,16 @@ describe("array updates", () => {
   });
 
   it("swap items", () => {
-    const subject = createSubject([{ firstName: "Alberth" }, { firstName: "Nicola" }]);
+    const subject = createSubject([
+      { firstName: "Alberth" },
+      { firstName: "Nicola" },
+    ]);
     let log;
     runInReactiveScope(() => {
       log = subject[0].firstName();
     });
     expect(log).toEqual("Alberth");
-    subject([
-      subject[1](),
-      subject[0](),
-    ]);
+    subject([subject[1](), subject[0]()]);
     expect(log).toEqual("Nicola");
   });
 });

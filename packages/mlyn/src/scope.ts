@@ -64,3 +64,6 @@ export class ReactiveScope implements Scope {
 export const runInReactiveScope = (callback: ScopeCallback) => {
   return new ReactiveScope(callback);
 };
+
+
+export const reactive = runInReactiveScope;
