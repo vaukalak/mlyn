@@ -1,4 +1,5 @@
 import { nullified, nullifiedSafe } from "../src/nullified";
+import { reactive } from "../src/scope";
 import { createSubject } from "../src/subject";
 
 describe("nullify", () => {
@@ -28,5 +29,13 @@ describe("nullify", () => {
     expect(wrapped()).toBe(1);
     subj$({ a: "a", b: "b"});
     expect(wrapped()).toBe(`a _ b`);
+  });
+
+  it("should subscribe to nullified leaf", () => {
+    const subj$ = createSubject(nullified(1));
+    const results: any[] = [];
+    reactive(() => { results.push(subj$.foo()); });
+    subj$({ foo: 2 });
+    expect(results).toEqual([1, 2]);
   });
 });

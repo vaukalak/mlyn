@@ -1,3 +1,4 @@
+import { Subject } from "mlyn";
 import { createForm } from "../src/createForm";
 
 describe("createForm", () => {
@@ -52,6 +53,23 @@ describe("createForm", () => {
       });
       values.password("12345678");
       expect(errors.password()).toBe(undefined);
+    });
+
+    it.only("should work", () => {
+      const [form] = createForm({
+        initialValues: {
+          firstName: "",
+        },
+        validate: {
+          firstName: (s: Subject<string>) => {
+            return s().length === 0;
+          },
+        },
+      });
+      const { fields, errors } = form;
+      const { firstName } = fields;
+      firstName.value("1");
+      expect(errors.firstName()).toBe(false);
     });
   });
 });

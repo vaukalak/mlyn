@@ -1,5 +1,5 @@
 import { IS_SUBJECT } from "./domain";
-import { isNullified } from "./nullified";
+import { isNullified, IS_NULLIFIED } from "./nullified";
 import { getActiveScope, Scope } from "./scope";
 
 const UNMOUNT = Object.freeze({});
@@ -98,7 +98,7 @@ export class SubjectImpl<T> {
     if (key === IS_SUBJECT) {
       return true;
     }
-    if (typeof this.value[key] === "function") {
+    if (typeof this.value[key] === "function" && this.value[key][IS_NULLIFIED] !== true) {
       return this.value[key];
     }
     // some subjects do have child subscriptions and hence on cache.

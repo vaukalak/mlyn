@@ -1,6 +1,6 @@
 import { createSubject } from "../src/subject";
 import { createHostSubject } from "../src/hostSubject";
-import { runInReactiveScope } from "../src/scope";
+import { reactive, runInReactiveScope } from "../src/scope";
 
 describe("host subjects", () => {
   test("nested subject should be reflected in the host value", () => {
@@ -47,7 +47,7 @@ describe("host subjects", () => {
     expect(scope.mock.calls[1]).toEqual(["b"]);
   });
 
-  test.only("function shouldn't be detected as a subject", () => {
+  test("function shouldn't be detected as a subject", () => {
     const foo = jest.fn(() => {
       console.log(1);
     });
@@ -61,7 +61,7 @@ describe("host subjects", () => {
     s$({ foo: "b" });
     expect(foo()).toEqual("b");
   });
-  
+
   test("guest subjects should unsync on dispose", () => {
     const foo = createSubject("a");
     const [s$, dispose] = createHostSubject({ foo });
@@ -85,7 +85,7 @@ describe("host subjects", () => {
     s$.foo();
     expect(foo).toBeCalled();
   });
-  
+
   test("host subjects should have host children", () => {
     const foo = jest.fn();
     const [child] = createHostSubject({ foo });
@@ -93,5 +93,15 @@ describe("host subjects", () => {
     expect(foo).not.toBeCalled();
     s$.child.foo();
     expect(foo).toBeCalled();
+  });
+
+  test("host subjects race-conditions", () => {
+    const [errors] = createHostSubject({ foo: false });
+    const [values] = createHostSubject({ foo: 0 });
+    const [foo] = createHostSubject({ error: errors.foo, value: values.foo });
+    const [fields] = createHostSubject({ foo });
+    reactive(() => errors.foo(foo.value() > 0));
+    fields.foo.value(1);
+    expect(foo()).toEqual({ error: true, value: 1 });
   });
 });

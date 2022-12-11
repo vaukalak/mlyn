@@ -14,7 +14,7 @@
     "ts": "npx tsc",
     "test": "npx jest",
     "clean": "rm -rf lib && rm -rf types",
-    "build": "npx babel src --extensions '.ts' --out-dir lib && yarn ts",
+    "build": "npx babel src --extensions '.ts' --out-dir lib --source-maps && yarn ts",
     "prepublish": "yarn clean && yarn build"
   },
   "devDependencies": {

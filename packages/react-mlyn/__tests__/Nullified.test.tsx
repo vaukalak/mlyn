@@ -10,7 +10,7 @@ const mapChildren = (container) =>
 test("nullfied update", async () => {
   const item$ = createSubject(nullified("a"));
   const { container } = render(
-    <Mlyn.Div>{item$.some.path}</Mlyn.Div>
+    <Mlyn.Div>{() => item$.some.path()}</Mlyn.Div>
   );
   expect(mapChildren(container)).toEqual(["a"]);
   act(() => {

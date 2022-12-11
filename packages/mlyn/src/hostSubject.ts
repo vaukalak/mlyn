@@ -23,7 +23,7 @@ export const createHostSubject = <T extends object>(subjectSpec: T) => {
   };
   let resultSubject$;
   let lock = true;
-  const disposeChildSync = reactive(() => {
+  const disposeHostSync = reactive(() => {
     const value = computeObject();
     if (!resultSubject$) {
       resultSubject$ = createSubject<UnwrapMap<T>>(value);
@@ -51,7 +51,7 @@ export const createHostSubject = <T extends object>(subjectSpec: T) => {
   return [
     resultSubject$,
     () => {
-      disposeChildSync.destroy();
+      disposeHostSync.destroy();
       disposeGuestSync.destroy();
     },
   ] as const;

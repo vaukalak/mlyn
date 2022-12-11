@@ -13,17 +13,18 @@ export const createForm = ({ initialValues, validate = {} }) => {
   const [values, valueDisposer] = createHostSubject(
     mapValues(initialValues, (key, value) => createSubject(value))
   );
-  const [errors, errorDisposers] = createHostSubject(
-    mapValues(initialValues, (key, value) => {
-      const error = createSubject<any>(undefined);
-      if (validate && validate[key]) {
-        reactive(() => {
-          error(validate[key](values[key], values));
-        });
-      }
-      return error;
-    })
-  );
+  let errorDisposer;
+  const errorsSpec = mapValues(initialValues, (key, value) => {
+    const error = createSubject<any>(false);
+    if (validate && validate[key]) {
+      reactive(() => {
+        const isError = validate[key](values[key], values);
+        errorDisposer = error(isError);
+      });
+    }
+    return error;
+  })
+  const [errors, errorDisposers] = createHostSubject(errorsSpec);
   const [touched, touchedDisposers] = createHostSubject(
     mapValues(initialValues, () => createSubject(false))
   );
@@ -38,7 +39,7 @@ export const createForm = ({ initialValues, validate = {} }) => {
     const [newField, disposer] = createHostSubject({
       value: values[key],
       touched: touched[key],
-      error: errors[key],
+      error: errorsSpec[key],
       focused: focused[key],
       onBlur: () => {
         touched[key](true);
