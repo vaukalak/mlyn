@@ -1,6 +1,7 @@
 import { createSubject } from "../src/subject";
 import { createHostSubject } from "../src/hostSubject";
 import { reactive, runInReactiveScope } from "../src/scope";
+import { Subject } from "../types";
 
 describe("host subjects", () => {
   test("nested subject should be reflected in the host value", () => {

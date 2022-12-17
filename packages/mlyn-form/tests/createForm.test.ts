@@ -55,7 +55,7 @@ describe("createForm", () => {
       expect(errors.password()).toBe(undefined);
     });
 
-    it.only("should work", () => {
+    it("should work when changing value through `field` object.", () => {
       const [form] = createForm({
         initialValues: {
           firstName: "",
@@ -70,6 +70,60 @@ describe("createForm", () => {
       const { firstName } = fields;
       firstName.value("1");
       expect(errors.firstName()).toBe(false);
+    });
+  });
+
+  describe("nested entries", () => {
+    it("should validate array entries", () => {
+      const [form] = createForm({
+        initialValues: {
+          names: ["barbara", "", "ganna"],
+        },
+        validate: {
+          names: (s: Subject<string[]>) => {
+            const errors = s().map((name) =>
+              name.length === 0 ? "empty" : ""
+            );
+            return errors.find(Boolean) ? errors : null;
+          },
+        },
+      });
+      const { fields, errors } = form;
+      const { names } = fields;
+      expect(errors.names()).toEqual(["", "empty", ""]);
+      names.value[1]("bonasforza");
+      expect(errors.names()).toBe(null);
+    });
+
+    it("should validate array of objects entries", () => {
+      const [form] = createForm({
+        initialValues: {
+          names: [
+            { first: "barbara", last: "radzivil" },
+            { first: "bona", last: "" },
+          ],
+        },
+        validate: {
+          names: (s: Subject<{ first: string; last: string }[]>) => {
+            const errors = s().map((name) => {
+              const first = name.first.length === 0 ? "empty" : "";
+              const last = name.last.length === 0 ? "empty" : "";
+              return first || last
+                ? {
+                    first,
+                    last,
+                  }
+                : null;
+            });
+            return errors.find(Boolean) ? errors : null;
+          },
+        },
+      });
+      const { fields, errors } = form;
+      const { names } = fields;
+      expect(errors.names()).toEqual([null, { first: "", last: "empty" }]);
+      names.value[1].last("sforza");
+      expect(errors.names()).toBe(null);
     });
   });
 });

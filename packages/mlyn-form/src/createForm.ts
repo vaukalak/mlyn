@@ -8,21 +8,11 @@ const mapValues = <T>(values, cb, initial = {}) => {
 };
 
 export const createForm = ({ initialValues, validate = {} }) => {
-  const keys = Object.keys(initialValues);
-  // const errors = createSubject({});
   const [values, valueDisposer] = createHostSubject(
     mapValues(initialValues, (key, value) => createSubject(value))
   );
-  let errorDisposer;
   const errorsSpec = mapValues(initialValues, (key, value) => {
-    const error = createSubject<any>(false);
-    if (validate && validate[key]) {
-      reactive(() => {
-        const isError = validate[key](values[key], values);
-        errorDisposer = error(isError);
-      });
-    }
-    return error;
+    return () => validate[key](values[key], values);
   })
   const [errors, errorDisposers] = createHostSubject(errorsSpec);
   const [touched, touchedDisposers] = createHostSubject(
