@@ -1,6 +1,6 @@
 {
   "name": "mlyn-history",
-  "version": "0.5.17",
+  "version": "0.5.20",
   "description": "simple history management from mlyn",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
@@ -30,7 +30,7 @@
     "@types/jest": "^27.4.0",
     "@types/node": "^18.11.11",
     "jest": "^27.4.7",
-    "mlyn": "^0.5.16",
+    "mlyn": "^0.5.20",
     "typescript": "^4.5.4"
   }
 }
