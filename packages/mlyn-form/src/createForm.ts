@@ -7,22 +7,7 @@ const mapValues = <T>(values, cb, initial = {}) => {
   }, initial);
 };
 
-export const createForm = ({ initialValues, validate = {} }) => {
-  const [values, valueDisposer] = createHostSubject(
-    mapValues(initialValues, (key, value) => createSubject(value))
-  );
-  const errorsSpec = mapValues(initialValues, (key, value) => {
-    return () => validate[key](values[key], values);
-  })
-  const [errors, errorDisposers] = createHostSubject(errorsSpec);
-  const [touched, touchedDisposers] = createHostSubject(
-    mapValues(initialValues, () => createSubject(false))
-  );
-
-  const [focused, focusedDisposers] = createHostSubject(
-    mapValues(initialValues, () => createSubject(false))
-  );
-
+const createFields = (initialValues, values, touched, errorsSpec, focused) => {
   const fieldSpecs = {};
   const fieldEntryDisposers = {};
   for (let key in initialValues) {
@@ -36,11 +21,49 @@ export const createForm = ({ initialValues, validate = {} }) => {
       },
       onFocus: () => {},
     });
+    const initialFieldValue = initialValues[key];
+    // if (typeof initialFieldValue === "object") {
+    //   for (let subKey in )
+    // }
     fieldSpecs[key] = newField;
     fieldEntryDisposers[key] = disposer;
   }
+  const [field, fieldDisposer] = createHostSubject(fieldSpecs);
 
-  const [fields, filedsDisposer] = createHostSubject(fieldSpecs);
+  return [
+    field,
+    () => {
+      for (let key in fieldEntryDisposers) {
+        fieldEntryDisposers[key]();
+      }
+      fieldDisposer();
+    },
+  ];
+};
+
+export const createForm = ({ initialValues, validate = {} }) => {
+  const [values, valueDisposer] = createHostSubject(
+    mapValues(initialValues, (key, value) => createSubject(value))
+  );
+  const errorsSpec = mapValues(initialValues, (key, value) => {
+    return () => validate[key](values[key], values);
+  });
+  const [errors, errorDisposers] = createHostSubject(errorsSpec);
+  const [touched, touchedDisposers] = createHostSubject(
+    mapValues(initialValues, () => createSubject(false))
+  );
+
+  const [focused, focusedDisposers] = createHostSubject(
+    mapValues(initialValues, () => createSubject(false))
+  );
+
+  const [fields, filedsDisposer] = createFields(
+    initialValues,
+    values,
+    touched,
+    errorsSpec,
+    focused
+  );
   return [
     {
       values,
@@ -55,9 +78,6 @@ export const createForm = ({ initialValues, validate = {} }) => {
       touchedDisposers();
       focusedDisposers();
       filedsDisposer();
-      for (let key in fieldEntryDisposers) {
-        fieldEntryDisposers[key]();
-      }
-    }
+    },
   ] as const;
 };

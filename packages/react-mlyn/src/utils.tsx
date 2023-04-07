@@ -109,13 +109,7 @@ export const mlynify = <T extends React.PropsWithChildren<object>>(
         if (typeof children === "function") {
           // @ts-ignore
           const newValue = children();
-          if (childState === null) {
-            setChild(newValue);
-          } else {
-            if (childState !== newValue) {
-              setChild(newValue);
-            }
-          }
+          setChild(newValue);
         }
       });
       return () => {
