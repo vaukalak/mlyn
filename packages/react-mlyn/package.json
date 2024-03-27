@@ -1,6 +1,6 @@
 {
   "name": "react-mlyn",
-  "version": "0.5.15",
+  "version": "0.5.21",
   "description": "React bindings to mlyn",
   "main": "lib/index.js",
   "types": "types/index.js",
@@ -33,10 +33,9 @@
     "@babel/preset-typescript": "^7.15.0",
     "@testing-library/react": "^13.3.0",
     "@types/jest": "^27.0.3",
-    "@types/react": "^17.0.19",
     "babel-polyfill": "^6.26.0",
     "jest": "^27.0.6",
-    "mlyn": "^0.5.13",
+    "mlyn": "^0.5.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "regenerator-runtime": "^0.13.9",
@@ -45,5 +44,6 @@
   "peerDependencies": {
     "mlyn": "^0.5.2",
     "react": "^17.0.2"
-  }
+  },
+  "gitHead": "6a3ec90bca36e23119e1a83555ef110d3ac76b23"
 }

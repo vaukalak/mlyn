@@ -1,4 +1,5 @@
-import { isNullified } from "./nullified";
+import { IS_SUBJECT } from "./domain";
+import { isNullified, IS_NULLIFIED } from "./nullified";
 import { getActiveScope, Scope } from "./scope";
 
 const UNMOUNT = Object.freeze({});
@@ -26,7 +27,7 @@ export const batch = (cb: Function) => {
   invokeCallbacksIfNoBatch();
 };
 
-export type PrimitiveSubject<T> = (() => T) & ((newValue: T) => void);
+export type PrimitiveSubject<T> = (() => T) & ((newValue: T) => string);
 
 export type Subject<T> = {
   [K in keyof T]: Subject<T[K]>;
@@ -94,6 +95,12 @@ export class SubjectImpl<T> {
     if (key === "__value" || key === "__curried") {
       return this.value;
     }
+    if (key === IS_SUBJECT) {
+      return true;
+    }
+    if (typeof this.value[key] === "function" && this.value[key][IS_NULLIFIED] !== true) {
+      return this.value[key];
+    }
     // some subjects do have child subscriptions and hence on cache.
     if (!(this.children ||= {})[key]) {
       const result = new SubjectImpl(this.value[key], key, this);
@@ -110,7 +117,7 @@ export class SubjectImpl<T> {
         this.owner = undefined;
       } else {
         if (this.value === newValue) {
-          return;
+          return this.value;
         }
         batch(() => {
           // replace root value;

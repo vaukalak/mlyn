@@ -59,8 +59,20 @@ export class ReactiveScope implements Scope {
     }
   }
 
+  runTracked(cb) {
+    if (!this.destroyed) {
+      const prevScope = currentScope;
+      currentScope = this;
+      cb();
+      currentScope = prevScope;
+    }
+  }
+
 }
 
 export const runInReactiveScope = (callback: ScopeCallback) => {
   return new ReactiveScope(callback);
 };
+
+
+export const reactive = runInReactiveScope;
