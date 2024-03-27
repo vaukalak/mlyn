@@ -44,5 +44,6 @@
   "peerDependencies": {
     "mlyn": "^0.5.2",
     "react": "^17.0.2"
-  }
+  },
+  "gitHead": "6a3ec90bca36e23119e1a83555ef110d3ac76b23"
 }

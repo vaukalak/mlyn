@@ -1,6 +1,6 @@
 {
   "name": "mlyn",
-  "version": "0.5.20",
+  "version": "0.5.21",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "descrition": "reactive immutable state",
@@ -29,5 +29,6 @@
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "gitHead": "6a3ec90bca36e23119e1a83555ef110d3ac76b23"
 }
