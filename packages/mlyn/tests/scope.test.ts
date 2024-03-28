@@ -1,4 +1,4 @@
-import { runInReactiveScope, muteScope } from "../src/scope";
+import { runInReactiveScope, muteScope, reactive } from "../src/scope";
 import { createSubject, batch } from "../src/subject";
 
 describe("scope", () => {
@@ -55,7 +55,7 @@ describe("scope", () => {
     // first run
     expect(lastRoot).toEqual(0);
     expect(lastMuted).toEqual(0);
-    
+
     subject.muted(subject.muted() + 1);
     // lastMuted is assigned in muted scope, should not be updated
     expect(lastMuted).toEqual(0);
@@ -80,7 +80,7 @@ describe("scope", () => {
 
   it("should invoke unsubscribe", () => {
     let invoked = false;
-    runInReactiveScope(() => () => invoked = true).destroy();
+    runInReactiveScope(() => () => (invoked = true)).destroy();
     expect(invoked).toEqual(true);
   });
 
@@ -101,8 +101,11 @@ describe("scope", () => {
   });
 
   it("manage deleted observed keys", () => {
-    type Subscription = { user?: { firstName: string }, country: string };
-    const state = createSubject<Subscription>({ user: { firstName: "Urshulia" }, country: "vkl" });
+    type Subscription = { user?: { firstName: string }; country: string };
+    const state = createSubject<Subscription>({
+      user: { firstName: "Urshulia" },
+      country: "vkl",
+    });
     let invocationsCount = 0;
     runInReactiveScope(() => {
       invocationsCount++;
@@ -113,7 +116,9 @@ describe("scope", () => {
   });
 
   it("manage deleted observed array entries", () => {
-    const { tags } = createSubject({ tags: [{ label: "a" }, { label: "b" }, { label: "c" }] });
+    const { tags } = createSubject({
+      tags: [{ label: "a" }, { label: "b" }, { label: "c" }],
+    });
     let log;
     const firstTag = tags[0];
     runInReactiveScope(() => {
@@ -122,5 +127,18 @@ describe("scope", () => {
     expect(log).toEqual("a");
     tags(tags().slice(0, -1));
     expect(log).toEqual("a");
+  });
+
+  it.only("run tracked", () => {
+    const a = createSubject(1);
+    let lastValue = 0;
+    const scope = reactive(() => {
+      lastValue = a.__value;
+    });
+    scope.runTracked(() => {
+      a();
+    })
+    a(2);
+    expect(lastValue).toBe(2);
   });
 });
