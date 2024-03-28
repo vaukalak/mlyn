@@ -63,9 +63,11 @@ export class ReactiveScope implements Scope {
     if (!this.destroyed) {
       const prevScope = currentScope;
       currentScope = this;
-      cb();
+      const result = cb();
       currentScope = prevScope;
+      return result;
     }
+    throw new Error("scope desctroyed!");
   }
 
 }

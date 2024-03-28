@@ -129,7 +129,7 @@ describe("scope", () => {
     expect(log).toEqual("a");
   });
 
-  it.only("run tracked", () => {
+  it("run tracked", () => {
     const a = createSubject(1);
     let lastValue = 0;
     const scope = reactive(() => {
