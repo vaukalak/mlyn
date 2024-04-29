@@ -1,6 +1,6 @@
 {
   "name": "mlyn",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "descrition": "reactive immutable state",
@@ -21,7 +21,7 @@
     "ts": "npx tsc",
     "test": "npx jest",
     "clean": "rm -rf lib && rm -rf types",
-    "build": "npx babel src --extensions '.ts' --out-dir lib --source-maps && yarn ts",
+    "build": "npx babel src --extensions '.ts,.tsx' --out-dir lib --source-maps && yarn ts",
     "prepublish": "yarn clean && yarn build"
   },
   "peerDependencies": {
