@@ -21,14 +21,16 @@ export const useReactive = (cb) => {
   useEffect(() => {
     let cleanup;
     const scope = reactive(() => {
-      if (cleanup) {
+      if (typeof cleanup === "function") {
         cleanup();
       }
       cleanup = cb();
     });
     return () => {
       scope.destroy();
-      cleanup();
+      if (typeof cleanup === "function") {
+        cleanup();
+      }
     };
   }, []);
 };
