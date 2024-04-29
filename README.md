@@ -4,7 +4,7 @@ Reactive immutable state.
 
 Inspired by [solidjs](https://github.com/solidjs/solid)
 
-For react binding check [react-mlyn](https://github.com/vaukalak/mlyn/tree/main/packages/react-mlyn)
+For react binding check [react-mlyn](https://github.com/vaukalak/react-mlyn)
 
 ## create a subject
 

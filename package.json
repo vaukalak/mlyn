@@ -1,18 +1,48 @@
 {
-  "name": "mlyn-monorepo",
-  "private": true,
-  "workspaces": [
-    "packages/*",
-    "packages/examples/*"
+  "name": "mlyn",
+  "version": "0.5.23",
+  "main": "lib/index.js",
+  "types": "types/index.d.ts",
+  "descrition": "reactive immutable state",
+  "author": "vaukalak",
+  "repository": "https://github.com/vaukalak/mlyn",
+  "files": [
+    "lib",
+    "types"
   ],
-  "dependencies": {
-    "mlyn": "*",
-    "mlyn-form": "*",
-    "mlyn-history": "*",
-    "react-mlyn": "*"
+  "exports": {
+    ".": "./lib/index.js",
+    "./react": "./lib/react/index.js"
+  },
+  "scripts": {
+    "ts": "npx tsc",
+    "test": "npx jest",
+    "clean": "rm -rf lib && rm -rf types",
+    "build": "npx babel src --extensions '.ts' --out-dir lib --source-maps && yarn ts",
+    "prepublish": "yarn clean && yarn build"
+  },
+  "peerDependencies": {
+    "react": "^17.0.0"
   },
   "devDependencies": {
-    "lerna": "^5.6.2",
-    "nx": "^14.5.10"
-  }
+    "@babel/cli": "^7.14.8",
+    "@babel/core": "^7.15.0",
+    "@babel/node": "^7.14.9",
+    "@babel/preset-env": "^7.15.0",
+    "@babel/preset-react": "^7.24.1",
+    "@babel/preset-typescript": "^7.15.0",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^15.0.5",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@types/jest": "^27.0.1",
+    "jest": "^27.0.6",
+    "react": "18.0.0",
+    "react-dom": "18.0.0",
+    "react-test-renderer": "18.0.0",
+    "typescript": "^4.3.5"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "gitHead": "96a6c41df24c53c48f9f72573770babf94bd2dec"
 }

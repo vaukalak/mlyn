@@ -4,8 +4,6 @@
 yarn-error.log
 .yarn/cache
 
-.DS_Store
-
 .vscode/
 
 node_modules/
