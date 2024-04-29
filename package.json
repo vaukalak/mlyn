@@ -1,11 +1,14 @@
 {
   "name": "mlyn",
-  "version": "0.5.23",
+  "version": "0.6.0",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "descrition": "reactive immutable state",
   "author": "vaukalak",
-  "repository": "https://github.com/vaukalak/mlyn",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vaukalak/mlyn.git"
+  },
   "files": [
     "lib",
     "types"
