@@ -4,7 +4,36 @@ Reactive immutable state.
 
 Inspired by [solidjs](https://github.com/solidjs/solid)
 
-For react binding check [react-mlyn](https://github.com/vaukalak/react-mlyn)
+## Reason
+
+Tracking re-renderings in react is a painful process. Fine-grain reactivity removes this problem completely. And react engineer can entirely forget about tracking dependencies and focus on writing code.
+
+```js
+import { useCallback } from "react";
+import { rc, useSubject, useReactive } from "mlyn/react";
+
+const Counter = rc(() => {
+  const state = useSubject({ count: 0 });
+
+  useReactive(() => {
+    // no dependency required for `state.count()`;
+    console.log(">>> reactive effect:", state.count());
+  });
+
+  const increment = useCallback(() => {
+    state.count(state.count() + 1); // No dependencies needed
+  }, []); // no dependency required for `state.count()`;
+
+  return (
+    <div>
+      <h1>Count: {state.count()}</h1>
+      <button onClick={increment}>Increment</button>
+    </div>
+  );
+});
+
+export default Counter;
+```
 
 ## create a subject
 
